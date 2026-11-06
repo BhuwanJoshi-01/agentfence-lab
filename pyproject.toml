@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentfence-lab"
+dynamic = ["version"]
+description = "Evidence-first, offline-first security regression testing for AI coding agents."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "AgentFence Lab contributors" }]
+keywords = ["ai-security", "coding-agents", "prompt-injection", "security-testing", "sandbox"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+agentfence = "agentfence.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/BhuwanJoshi-01/agentfence-lab"
+Issues = "https://github.com/BhuwanJoshi-01/agentfence-lab/issues"
+Security = "https://github.com/BhuwanJoshi-01/agentfence-lab/blob/main/SECURITY.md"
+
+[tool.hatch.version]
+path = "src/agentfence/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentfence"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "docs/", "README.md", "LICENSE", "CHANGELOG.md", "SECURITY.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
