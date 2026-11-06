@@ -5,7 +5,7 @@
 - **Task:** AF-0004
 - **Related:** ADR-001 (offline mock adapter before real agents), ADR-005 (deterministic
   evaluator), ADR-007 (dedicated auth design for live adapters), ADR-011 (initial supported
-  environment, proposed in #81), docs/05, docs/09 sections 6 and 11, docs/12 section 4 Spikes C
+  environment, `docs/adr/0011-initial-supported-environment.md`), docs/05, docs/09 sections 6 and 11, docs/12 section 4 Spikes C
   and D
 
 ## Context
@@ -16,7 +16,7 @@ reasoning. It records what mock-first means for the code that exists now, and an
 half of AF-0004: which live agent to evaluate first, and what has to be true before that choice
 is final.
 
-State of `main` at `61a0d9b`:
+State of `main` after #80 (2026-11-06):
 
 - The evaluator (`core/evaluator.py`), event model (`core/events.py`) and coverage
   (`core/coverage.py`) take events as input and never see an agent. The 40-case golden matrix
