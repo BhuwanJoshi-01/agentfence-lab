@@ -6,4 +6,5 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  list  List bundled scenarios for a profile.
+  list      List bundled scenarios for a profile.
+  validate  Validate scenario manifests and their benign pairs.

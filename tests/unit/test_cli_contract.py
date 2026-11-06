@@ -31,6 +31,7 @@ HELP_TARGETS = {
     "doctor": ["doctor"],
     "scenarios": ["scenarios"],
     "scenarios_list": ["scenarios", "list"],
+    "scenarios_validate": ["scenarios", "validate"],
 }
 
 FACTS = HostFacts(
@@ -94,7 +95,12 @@ def _command_tree(group: object, prefix: str = "") -> set[str]:
 
 
 def test_command_tree_is_exactly_the_implemented_contract() -> None:
-    assert _command_tree(cli.app) == {"version", "doctor", "scenarios list"}
+    assert _command_tree(cli.app) == {
+        "version",
+        "doctor",
+        "scenarios list",
+        "scenarios validate",
+    }
 
 
 def test_root_help_documents_every_exit_code(runner: CliRunner) -> None:
