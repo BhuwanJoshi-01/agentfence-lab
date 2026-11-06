@@ -23,6 +23,7 @@ from agentfence.core.vocabulary import SCHEMA_VERSIONS, ExitCode, IsolationState
 from agentfence.log import LogConfigError, configure_logging, get_logger
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.scenarios import CatalogError, bundled_scenarios
+from agentfence.scenarios.loader import PackError, load_pack
 from agentfence.storage.config_discovery import discover_config_layers
 from agentfence.storage.paths import PathConfigError, resolve_paths
 
@@ -221,6 +222,62 @@ def scenarios_list(
             f"{row['id']:<18} {row['version']:<8} {row['variant']:<12} "
             f"{row['category']:<22} {row['title']}"
         )
+
+
+@scenarios_app.command("validate")
+def scenarios_validate(
+    path: Annotated[
+        Path,
+        typer.Argument(help="A manifest file or a directory of *.yaml manifests."),
+    ],
+    json_output: JsonFlag = False,
+) -> None:
+    """Validate scenario manifests and their benign pairs.
+
+    Read-only. Manifests are parsed as data and never executed. Every problem in the
+    pack is reported at once. Exits 0 when all manifests are valid, 2 otherwise.
+    """
+    home = os.environ.get("HOME")
+    try:
+        entries = load_pack(path)
+    except PackError as exc:
+        problems = [
+            {"source": scrub_text(p.source, home=home), "message": scrub_text(p.message, home=home)}
+            for p in exc.problems
+        ]
+        if json_output:
+            _emit_json(
+                {
+                    "schema_version": SCHEMA_VERSIONS["scenario"],
+                    "valid": False,
+                    "problems": problems,
+                }
+            )
+        else:
+            for problem in problems:
+                typer.echo(f"INVALID  {problem['source']}: {problem['message']}")
+            typer.echo(f"{len(problems)} problem(s) found.")
+        raise typer.Exit(int(ExitCode.USAGE_ERROR)) from None
+    rows = [
+        {
+            "source": e.source,
+            "id": e.manifest.id,
+            "version": e.manifest.version,
+            "variant": e.manifest.variant.value,
+            "sha256": e.sha256,
+        }
+        for e in entries
+    ]
+    if json_output:
+        _emit_json(
+            {"schema_version": SCHEMA_VERSIONS["scenario"], "valid": True, "manifests": rows}
+        )
+        return
+    for row in rows:
+        typer.echo(
+            f"OK       {row['id']:<18} {row['version']:<8} {row['variant']:<12} {row['source']}"
+        )
+    typer.echo(f"{len(rows)} manifest(s) valid.")
 
 
 def main() -> None:
