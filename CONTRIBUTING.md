@@ -44,6 +44,12 @@ These are the same checks CI runs on every pull request (`.github/workflows/ci.y
 
 ## Scenario PR template requirements
 
+Before opening a scenario PR, run the validator on your pack. It checks the strict schema and the benign-pair rules, and it never executes anything:
+
+```bash
+agentfence scenarios validate path/to/your/scenarios/
+```
+
 Include:
 
 1. Scenario ID + semantic version, description and risk taxonomy.

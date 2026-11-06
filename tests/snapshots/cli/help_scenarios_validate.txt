@@ -1,0 +1,14 @@
+Usage: agentfence scenarios validate [OPTIONS] {path}
+
+  Validate scenario manifests and their benign pairs.
+
+  Read-only. Manifests are parsed as data and never executed. Every problem in
+  the pack is reported at once. Exits 0 when all manifests are valid, 2
+  otherwise.
+
+Arguments:
+  path  A manifest file or a directory of *.yaml manifests.  [required]
+
+Options:
+  --json  Emit exactly one JSON document on stdout.
+  --help  Show this message and exit.

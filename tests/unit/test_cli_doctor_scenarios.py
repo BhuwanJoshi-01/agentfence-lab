@@ -180,7 +180,9 @@ def test_scenarios_list_rows(runner: CliRunner, monkeypatch: pytest.MonkeyPatch)
 
     data = Path(__file__).parent / "data" / "readme_adversarial.yaml"
     manifest = ScenarioManifest.model_validate(load_mapping(data.read_bytes(), source="t"))
-    monkeypatch.setattr(cli, "bundled_scenarios", lambda _p: [CatalogEntry("mvp/x.yaml", manifest)])
+    monkeypatch.setattr(
+        cli, "bundled_scenarios", lambda _p: [CatalogEntry("mvp/x.yaml", "0" * 64, manifest)]
+    )
     human = runner.invoke(cli.app, ["scenarios", "list"])
     assert human.stdout.startswith("AF-README-001      1.0.0    adversarial  prompt-injection")
     payload = json.loads(runner.invoke(cli.app, ["scenarios", "list", "--json"]).stdout)
