@@ -9,14 +9,18 @@ Read [README](README.md), [Security policy](SECURITY.md), [Threat model](docs/03
 ## Development setup (after initial implementation)
 
 ```bash
-python3.12 -m venv .venv
+python3.12 -m venv .venv            # 3.12 or newer
 source .venv/bin/activate
-python -m pip install -e '.[dev]'
-pytest tests/unit -q
+python -m pip install -e '.[dev]'   # or, lockfile-pinned: uv sync --extra dev
+pre-commit install                  # optional: run the lint hooks on commit
+
 ruff check .
+ruff format --check .
+mypy                                # strict, over src/agentfence
+pytest -m "not isolation" --cov
 ```
 
-`pip install -e '.[dev]'` and `pytest` work today; lint and type-check tooling lands with AF-0104. `uv sync --extra dev` is an equivalent, lockfile-pinned alternative.
+These are the same checks CI runs on every pull request (`.github/workflows/ci.yml`). Tests marked `isolation` need a verified rootless runtime on a trusted runner; they are skipped on hosted CI and on hosts without that capability, and a skip is never counted as a pass.
 
 ### Branches, commits and pull requests
 
