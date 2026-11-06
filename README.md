@@ -1,6 +1,6 @@
 # AgentFence Lab — Engineering Blueprint
 
-> **Status:** pre-alpha. The package skeleton and `agentfence version` exist; everything else below is still a design specification. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
+> **Status:** pre-alpha. `agentfence version`, `doctor` and `scenarios list` work (read-only); sandboxing, scenarios and reports are still a design specification. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
 > **Prepared:** 2026-11-06 · **Audience:** solo developer, maintainers, coding agents, security reviewers.  
 > **Category:** defensive AI coding-agent security evaluation.  
 > **Tagline:** *Test what your coding agent actually does, not merely what it claims to do.*
@@ -51,8 +51,12 @@ cd agentfence-lab
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e '.[dev]'     # or: uv sync --extra dev
 agentfence version --json
+agentfence doctor            # read-only host check; exits 3 until rootless verification lands (AF-0201)
+agentfence scenarios list    # empty until the MVP scenarios land in M3
 pytest -q
 ```
+
+`doctor` is deliberately fail-closed. It reports `runtime.rootless` as `UNKNOWN`, and the isolation state as `UNSUPPORTED`, until real rootless verification exists. A host AgentFence can't verify never looks ready.
 
 The PyPI distribution name is `agentfence-lab` (the bare `agentfence` name is taken); the CLI and import package are `agentfence`.
 

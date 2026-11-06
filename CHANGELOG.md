@@ -28,6 +28,11 @@ All notable user-visible changes are recorded here. The format follows
   foreign-owned paths, and config discovery (`--config` > `AGENTFENCE_CONFIG` >
   `./agentfence.yaml`, no upward search). (AF-0105)
 - Atomic `0600` file writes with fsync and temp-file cleanup on failure. (AF-0105)
+- `agentfence doctor [--json] [--config PATH]`: read-only host prerequisite checks and
+  config validation. Exits 0 only when every required check passes, 3 otherwise, 2 on
+  invalid configuration. (AF-0102)
+- `agentfence scenarios list [--profile] [--json]`: lists validated bundled manifests;
+  an invalid bundle fails the listing. (AF-0102)
 - Structured logging to stderr only, level from `AGENTFENCE_LOG_LEVEL`, allowlisted
   fields, a 1 MiB per-process cap with a single truncation notice, and no tracebacks
   in logs. (AF-0106)
@@ -39,3 +44,9 @@ All notable user-visible changes are recorded here. The format follows
   pre-commit hooks and pip-audit. (AF-0104)
 - Credential-free CI on GitHub Actions: lint, unit tests on Python 3.12/3.13, wheel
   build with content check and clean-install smoke test, dependency audit. (AF-0104)
+
+### Fixed
+
+- Group-writable config files are accepted when the group is the user's private group
+  (Debian/Ubuntu `umask 0002`); shared-group and world-writable files are still
+  refused. (AF-0102)
