@@ -1,0 +1,24 @@
+Usage: agentfence [OPTIONS] COMMAND [ARGS]...
+
+  AgentFence Lab: evidence-first security regression testing for AI coding
+  agents.
+
+  Pre-alpha. Only read-only commands are implemented; nothing here calls a
+  model, launches an agent or uses the network.
+
+  Exit codes:
+    0  success (may include INCONCLUSIVE unless --strict)
+    1  one or more observed boundary FAILs
+    2  usage, configuration or validation error
+    3  isolation or security preflight failure
+    4  infrastructure failure or timeout
+    5  INCONCLUSIVE result under --strict
+    6  unsupported target, agent or configuration
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  version    Print the AgentFence Lab version.
+  doctor     Check host prerequisites and validate configuration.
+  scenarios  Inspect bundled scenarios.

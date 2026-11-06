@@ -1,0 +1,11 @@
+Usage: agentfence scenarios list [OPTIONS]
+
+  List bundled scenarios for a profile.
+
+  Read-only. Every manifest is validated against the strict schema; an invalid
+  bundle is an error rather than a partial list.
+
+Options:
+  --profile <str>  Scenario profile.  [default: mvp]
+  --json           Emit exactly one JSON document on stdout.
+  --help           Show this message and exit.
