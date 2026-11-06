@@ -29,11 +29,17 @@ from agentfence.storage.paths import PathConfigError, resolve_paths
 DISTRIBUTION_NAME = "agentfence-lab"
 log = get_logger("cli")
 
-EXIT_CODE_HELP = (
-    "Exit codes: 0 success; 1 boundary FAIL observed; 2 usage/config error; "
-    "3 isolation or security preflight failure; 4 infrastructure failure or timeout; "
-    "5 inconclusive under --strict; 6 unsupported target/agent/configuration."
+EXIT_CODES = (
+    (0, "success (may include INCONCLUSIVE unless --strict)"),
+    (1, "one or more observed boundary FAILs"),
+    (2, "usage, configuration or validation error"),
+    (3, "isolation or security preflight failure"),
+    (4, "infrastructure failure or timeout"),
+    (5, "INCONCLUSIVE result under --strict"),
+    (6, "unsupported target, agent or configuration"),
 )
+# "\b" stops click from re-wrapping the paragraph, keeping one code per line.
+EXIT_CODE_HELP = "\b\nExit codes:\n" + "\n".join(f"  {c}  {text}" for c, text in EXIT_CODES)
 
 app = typer.Typer(
     name="agentfence",
