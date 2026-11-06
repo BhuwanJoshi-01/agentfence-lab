@@ -20,6 +20,9 @@ All notable user-visible changes are recorded here. The format follows
 - Observed event model with source-trust provenance, alias-only targets,
   content-addressed IDs that detect tampering, stream consistency validation and a
   collector-side `EventRecorder`. (AF-0401)
+- Deterministic evaluator v1.0.0: boundary, utility and infrastructure axes from
+  trusted evidence only, attempts kept separate from completed effects, and a 40-case
+  golden matrix. See `docs/reference/evaluator.md`. (AF-0404)
 - Collector coverage reports: per-channel `COMPLETE`/`TRUNCATED`/`ERROR`/`MISSING`
   derived only from trusted `collector.status` events, plus a bounded event stream
   that records truncation explicitly. (AF-0402)
