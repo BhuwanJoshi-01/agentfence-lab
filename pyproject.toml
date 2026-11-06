@@ -32,6 +32,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.15",
+    "mypy>=1.13",
+    "pip-audit>=2.7",
+    "pre-commit>=4.0",
 ]
 
 [project.scripts]
@@ -54,3 +59,49 @@ include = ["src/", "tests/", "docs/", "README.md", "LICENSE", "CHANGELOG.md", "S
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "isolation: needs a verified rootless runtime on a trusted runner (skipped elsewhere)",
+]
+
+[tool.coverage.run]
+source = ["agentfence"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.format]
+# Spec documents contain illustrative pseudocode; keep them byte-identical.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "S", "C4", "SIM", "RUF", "PTH", "N", "PL", "TRY", "BLE", "A",
+]
+ignore = [
+    "PLR2004",  # magic values are fine in tests and exit-code tables
+    "TRY003",   # long messages in exceptions are intentional: errors propose a next step
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # assert is how pytest works
+    "S603",    # tests spawn our own CLI with argument arrays
+    "PLR0913",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["src/agentfence"]

@@ -1,0 +1,101 @@
+# Credential-free CI for every pull request (docs/10 section 8, docs/03 section 9).
+# - No secrets, no pull_request_target, read-only token.
+# - Third-party actions pinned to full commit SHAs.
+# - Isolation tests are NOT run here: hosted runners are rootful and cannot
+#   prove rootless containment. They are marked and skipped honestly.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_FROZEN: "1"
+  FORCE_COLOR: "0"
+
+jobs:
+  lint:
+    name: lint (ruff, mypy, lockfile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - name: Lockfile is consistent with pyproject
+        run: uv lock --check
+        env:
+          UV_FROZEN: "0"
+      - run: uv sync --extra dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  unit:
+    name: unit (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --extra dev
+      - name: Tests (isolation tests excluded on hosted runners)
+        run: uv run pytest -m "not isolation" --cov --cov-report=term-missing
+
+  package:
+    name: package (build + clean install smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - run: uv build
+      - name: Wheel must not contain tests, fixtures state or VCS files
+        run: |
+          python3 -m zipfile -l dist/*.whl | tee wheel-contents.txt
+          if grep -E '(^|/)(tests|\.git|\.agentfence)/|\.sqlite3' wheel-contents.txt; then
+            echo "::error::unexpected files in wheel"; exit 1
+          fi
+      - name: Install wheel into a fresh venv and run the CLI
+        run: |
+          python3 -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install --quiet dist/*.whl
+          /tmp/smoke/bin/agentfence version --json | python3 -c 'import json,sys; print(json.load(sys.stdin))'
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - run: uv export --no-dev --no-emit-project --format requirements-txt -o requirements-runtime.txt
+      - run: uvx pip-audit --strict --disable-pip -r requirements-runtime.txt
