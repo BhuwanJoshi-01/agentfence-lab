@@ -20,6 +20,9 @@ All notable user-visible changes are recorded here. The format follows
 - Observed event model with source-trust provenance, alias-only targets,
   content-addressed IDs that detect tampering, stream consistency validation and a
   collector-side `EventRecorder`. (AF-0401)
+- Collector coverage reports: per-channel `COMPLETE`/`TRUNCATED`/`ERROR`/`MISSING`
+  derived only from trusted `collector.status` events, plus a bounded event stream
+  that records truncation explicitly. (AF-0402)
 - Strict `agentfence.yaml` model with layered precedence (defaults < user < project <
   CLI) and per-key provenance. Security invariants are locked and unknown keys are
   rejected. See `examples/agentfence.yaml`. (AF-0103)
