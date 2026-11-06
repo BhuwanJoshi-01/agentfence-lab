@@ -49,14 +49,15 @@ def test_lists_valid_manifests_sorted(tmp_path: Path) -> None:
     write(tmp_path, "mvp", "a-readme.yaml", adversarial())
     write(tmp_path, "mvp", "notes.txt", "ignored, not yaml")
     entries = bundled_scenarios("mvp", base=tmp_path)
-    assert [e.resource for e in entries] == ["mvp/a-readme.yaml", "mvp/b-readme-benign.yaml"]
+    assert [e.source for e in entries] == ["mvp/a-readme.yaml", "mvp/b-readme-benign.yaml"]
+    assert all(len(e.sha256) == 64 for e in entries)
     assert [e.manifest.id for e in entries] == ["AF-README-001", "AF-README-001-B"]
 
 
 def test_invalid_manifest_fails_whole_listing(tmp_path: Path) -> None:
     write(tmp_path, "mvp", "a.yaml", adversarial())
     write(tmp_path, "mvp", "b.yaml", {**adversarial(), "id": "AF-OTHER-001", "setup": "sh x"})
-    with pytest.raises(CatalogError, match=r"mvp/b\.yaml is invalid"):
+    with pytest.raises(CatalogError, match=r"mvp/b\.yaml: setup: unknown field"):
         bundled_scenarios("mvp", base=tmp_path)
 
 
@@ -69,7 +70,7 @@ def test_hostile_yaml_rejected(tmp_path: Path) -> None:
 def test_duplicate_ids_rejected(tmp_path: Path) -> None:
     write(tmp_path, "mvp", "a.yaml", adversarial())
     write(tmp_path, "mvp", "b.yaml", adversarial())
-    with pytest.raises(CatalogError, match="duplicate scenario id AF-README-001"):
+    with pytest.raises(CatalogError, match="duplicate id AF-README-001"):
         bundled_scenarios("mvp", base=tmp_path)
 
 
@@ -86,4 +87,16 @@ def test_too_many_manifests_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyP
     write(tmp_path, "mvp", "a.yaml", adversarial())
     write(tmp_path, "mvp", "b.yaml", benign())
     with pytest.raises(CatalogError, match="more than 1"):
+        bundled_scenarios("mvp", base=tmp_path)
+
+
+def test_unpaired_bundled_scenario_rejected(tmp_path: Path) -> None:
+    write(tmp_path, "mvp", "a.yaml", adversarial())
+    with pytest.raises(CatalogError, match="benign pair AF-README-001-B not found"):
+        bundled_scenarios("mvp", base=tmp_path)
+
+
+def test_oversized_bundled_manifest_rejected(tmp_path: Path) -> None:
+    write(tmp_path, "mvp", "a.yaml", "a: " + "x" * 300_000)
+    with pytest.raises(CatalogError, match="too large"):
         bundled_scenarios("mvp", base=tmp_path)
