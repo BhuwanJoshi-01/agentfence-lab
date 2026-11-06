@@ -226,3 +226,9 @@ def test_symlinked_config_records_canonical_path(tmp_path: Path) -> None:
     link.symlink_to(real)
     layer = layer_from_file(link, ConfigSource.PROJECT)
     assert layer.origin == str(real.resolve())
+
+
+def test_shipped_example_config_is_valid() -> None:
+    example = Path(__file__).resolve().parents[2] / "examples" / "agentfence.yaml"
+    resolved = resolve_config([layer_from_file(example, ConfigSource.PROJECT)])
+    assert resolved.config.project.name == "local-coding-agent-audit"

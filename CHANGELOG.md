@@ -17,6 +17,14 @@ All notable user-visible changes are recorded here. The format follows
   infrastructure axes, event taxonomy, source trust, exit codes with documented
   precedence, and per-artifact schema versions. See ADR-010. (AF-0006)
 - Run lifecycle state machine with auditable, timestamped transitions. (AF-0006)
+- Strict `agentfence.yaml` model with layered precedence (defaults < user < project <
+  CLI) and per-key provenance. Security invariants are locked and unknown keys are
+  rejected. See `examples/agentfence.yaml`. (AF-0103)
+- Strict declarative scenario manifest schema with pairing rules and no executable
+  fields. (AF-0103)
+- Adapter and host capability models; isolation state is derived fail-closed. (AF-0103)
+- Hardened YAML loader: rejects duplicate keys, anchors/aliases, non-string keys,
+  multi-document streams and oversized input. (AF-0103)
 - Developer tooling: ruff (lint + format), mypy `--strict`, pytest branch coverage,
   pre-commit hooks and pip-audit. (AF-0104)
 - Credential-free CI on GitHub Actions: lint, unit tests on Python 3.12/3.13, wheel
