@@ -1,0 +1,9 @@
+Usage: agentfence scenarios [OPTIONS] COMMAND [ARGS]...
+
+  Inspect bundled scenarios. Read-only.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  list  List bundled scenarios for a profile.

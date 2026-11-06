@@ -1,0 +1,9 @@
+Usage: agentfence version [OPTIONS]
+
+  Print the AgentFence Lab version.
+
+  Read-only. Does not call a model, start a sandbox or touch the network.
+
+Options:
+  --json  Emit exactly one JSON document on stdout.
+  --help  Show this message and exit.

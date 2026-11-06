@@ -20,6 +20,13 @@ mypy                                # strict, over src/agentfence
 pytest -m "not isolation" --cov
 ```
 
+CLI help text is a tested contract. If you change a command's help on purpose, regenerate the snapshots and review the diff:
+
+```bash
+AGENTFENCE_UPDATE_SNAPSHOTS=1 pytest tests/unit/test_cli_contract.py
+git diff tests/snapshots/
+```
+
 These are the same checks CI runs on every pull request (`.github/workflows/ci.yml`). Tests marked `isolation` need a verified rootless runtime on a trusted runner; they are skipped on hosted CI and on hosts without that capability, and a skip is never counted as a pass.
 
 ### Branches, commits and pull requests

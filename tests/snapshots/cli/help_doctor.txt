@@ -1,0 +1,13 @@
+Usage: agentfence doctor [OPTIONS]
+
+  Check host prerequisites and validate configuration.
+
+  Read-only: writes no files, starts no processes or containers, never calls a
+  model and never uses the network. Exits 0 only when every required check
+  passes, 3 when sandbox runs would be refused on this host, 2 on invalid
+  configuration.
+
+Options:
+  --json           Emit exactly one JSON document on stdout.
+  --config <path>  Project config file (default: ./agentfence.yaml).
+  --help           Show this message and exit.
