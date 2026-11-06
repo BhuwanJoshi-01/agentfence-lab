@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from agentfence.core.config import ConfigError, ConfigSource, resolve_config
+from agentfence.storage import config_discovery as discovery
 from agentfence.storage.config_discovery import discover_config_layers
 from agentfence.storage.paths import AppPaths
 
@@ -72,13 +73,46 @@ def test_missing_explicit_file_is_an_error(paths: AppPaths, tmp_path: Path) -> N
         discover_config_layers(paths=paths, cwd=tmp_path, env={}, explicit=Path("missing.yaml"))
 
 
-@pytest.mark.parametrize("loose", [0o666, 0o664, 0o646])
-def test_world_or_group_writable_config_refused(
-    paths: AppPaths, tmp_path: Path, loose: int
-) -> None:
+@pytest.mark.parametrize("loose", [0o666, 0o646, 0o602])
+def test_world_writable_config_refused(paths: AppPaths, tmp_path: Path, loose: int) -> None:
     write(tmp_path / "agentfence.yaml", "{}\n", mode=loose)
-    with pytest.raises(ConfigError, match="chmod go-w"):
+    with pytest.raises(ConfigError, match=r"writable by other users.*chmod go-w"):
         discover_config_layers(paths=paths, cwd=tmp_path, env={})
+
+
+def test_group_writable_ok_for_user_private_group(
+    paths: AppPaths, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(discovery, "is_private_group", lambda _gid: True)
+    write(tmp_path / "agentfence.yaml", "{}\n", mode=0o664)
+    assert len(discover_config_layers(paths=paths, cwd=tmp_path, env={})) == 1
+
+
+def test_group_writable_refused_for_shared_group(
+    paths: AppPaths, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(discovery, "is_private_group", lambda _gid: False)
+    write(tmp_path / "agentfence.yaml", "{}\n", mode=0o664)
+    with pytest.raises(ConfigError, match="writable by a shared group"):
+        discover_config_layers(paths=paths, cwd=tmp_path, env={})
+
+
+def test_is_private_group_rules(monkeypatch: pytest.MonkeyPatch) -> None:
+    import grp  # noqa: PLC0415
+    import pwd  # noqa: PLC0415
+
+    account = pwd.struct_passwd(("dev", "x", 1000, 1000, "", "/home/dev", "/bin/sh"))
+    groups = {
+        1000: grp.struct_group(("dev", "x", 1000, [])),
+        1001: grp.struct_group(("team", "x", 1001, ["dev", "alice"])),
+        1002: grp.struct_group(("dev2", "x", 1002, ["dev"])),
+    }
+    monkeypatch.setattr(discovery.pwd, "getpwuid", lambda _uid: account)
+    monkeypatch.setattr(discovery.grp, "getgrgid", lambda gid: groups[gid])
+    assert discovery.is_private_group(1000, uid=1000) is True
+    assert discovery.is_private_group(1001, uid=1000) is False  # not primary, shared
+    assert discovery.is_private_group(1002, uid=1000) is False  # not primary
+    assert discovery.is_private_group(4242, uid=1000) is False  # unknown gid
 
 
 def test_project_cannot_weaken_invariants_via_discovery(paths: AppPaths, tmp_path: Path) -> None:
