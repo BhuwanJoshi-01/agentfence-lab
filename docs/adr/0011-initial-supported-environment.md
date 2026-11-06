@@ -20,7 +20,7 @@ Three environments matter today. None of them can prove rootless containment.
 | Maintainer dev box | Ubuntu 26.04, x86_64, Linux 7.0 kernel, cgroup v2 with the systemd cgroup driver. Docker Engine 29.9.2, **rootful**: `docker info` lists the apparmor, seccomp and cgroupns security options and no rootless entry. Podman is not installed. Python 3.13. | The same as CI. |
 | Dedicated isolation runner | Does not exist yet. docs/10 section 5 requires one for isolation tests. | Nothing yet. |
 
-On the dev box (2026-11-06, `main` at `61a0d9b`), `agentfence doctor` passes every implemented
+On the dev box (2026-11-06, `main` after #80), `agentfence doctor` passes every implemented
 required check, reports `runtime.rootless` as `UNKNOWN`, sets the isolation state to
 `UNSUPPORTED` and exits 3. That outcome is correct, but the reason matters. `runtime.available`
 passes because a `docker` binary is on `PATH`. `runtime.rootless` is `UNKNOWN` on every host
