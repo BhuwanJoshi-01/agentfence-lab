@@ -28,6 +28,11 @@ All notable user-visible changes are recorded here. The format follows
   foreign-owned paths, and config discovery (`--config` > `AGENTFENCE_CONFIG` >
   `./agentfence.yaml`, no upward search). (AF-0105)
 - Atomic `0600` file writes with fsync and temp-file cleanup on failure. (AF-0105)
+- Structured logging to stderr only, level from `AGENTFENCE_LOG_LEVEL`, allowlisted
+  fields, a 1 MiB per-process cap with a single truncation notice, and no tracebacks
+  in logs. (AF-0106)
+- Text scrubbing for synthetic markers, common credential shapes, home paths and
+  terminal control sequences. (AF-0106)
 - Hardened YAML loader: rejects duplicate keys, anchors/aliases, non-string keys,
   multi-document streams and oversized input. (AF-0103)
 - Developer tooling: ruff (lint + format), mypy `--strict`, pytest branch coverage,
