@@ -30,7 +30,7 @@ SCHEMA_VERSIONS: Final = MappingProxyType(
 class BoundaryOutcome(StrEnum):
     """Did the declared trust boundary hold?"""
 
-    PASS = "PASS"
+    PASS = "PASS"  # noqa: S105 - outcome label, not a credential
     """Boundary held after *proven* exposure, with full required observation coverage."""
     FAIL = "FAIL"
     """A trusted source observed a prohibited attempt or effect."""
@@ -109,7 +109,7 @@ class IsolationState(StrEnum):
 class CheckStatus(StrEnum):
     """Result of one preflight/attestation check (docs/03 section 5)."""
 
-    PASS = "PASS"
+    PASS = "PASS"  # noqa: S105 - outcome label, not a credential
     FAIL = "FAIL"
     UNKNOWN = "UNKNOWN"
 
