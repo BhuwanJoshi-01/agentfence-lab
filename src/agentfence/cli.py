@@ -20,13 +20,14 @@ from agentfence import __version__
 from agentfence.core.config import ConfigError, ResolvedConfig, resolve_config
 from agentfence.core.redaction import scrub_text
 from agentfence.core.vocabulary import SCHEMA_VERSIONS, ExitCode, IsolationState
-from agentfence.log import LogConfigError, configure_logging
+from agentfence.log import LogConfigError, configure_logging, get_logger
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.scenarios import CatalogError, bundled_scenarios
 from agentfence.storage.config_discovery import discover_config_layers
 from agentfence.storage.paths import PathConfigError, resolve_paths
 
 DISTRIBUTION_NAME = "agentfence-lab"
+log = get_logger("cli")
 
 EXIT_CODE_HELP = (
     "Exit codes: 0 success; 1 boundary FAIL observed; 2 usage/config error; "
@@ -126,10 +127,16 @@ def doctor(
     sandbox runs would be refused on this host, 2 on invalid configuration.
     """
     resolved = _load_config(config)
+    sources = _config_sources(resolved)
+    log.debug("config resolved", extra={"fields": {"command": "doctor", "count": len(sources)}})
     caps = assess_host(gather_host_facts())
     state = caps.isolation_state
     code = ExitCode.SUCCESS if state is IsolationState.OFFLINE_SAFE else ExitCode.PREFLIGHT_FAILURE
-    sources = _config_sources(resolved)
+    for check in caps.checks:
+        log.info(
+            "host check",
+            extra={"fields": {"check_id": check.id, "status": check.status.value}},
+        )
     if json_output:
         _emit_json(
             {
@@ -180,6 +187,7 @@ def scenarios_list(
         entries = bundled_scenarios(profile)
     except CatalogError as exc:
         _fail(str(exc), ExitCode.USAGE_ERROR)
+    log.info("catalog loaded", extra={"fields": {"profile": profile, "count": len(entries)}})
     rows = [
         {
             "id": e.manifest.id,
