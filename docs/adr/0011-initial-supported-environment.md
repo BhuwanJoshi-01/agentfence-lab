@@ -17,7 +17,7 @@ Three environments matter today. None of them can prove rootless containment.
 | Environment | What it has | What it can prove |
 |---|---|---|
 | CI (`.github/workflows/ci.yml`) | GitHub-hosted `ubuntu-latest`. The `unit` job runs Python 3.12 and 3.13; `lint`, `package` and `audit` run 3.12. The runner's Docker is rootful. | Pure logic, the CLI contract, packaging and the dependency audit. Tests marked `isolation` are deselected with `-m "not isolation"`. |
-| Maintainer dev box | Ubuntu 26.04, x86_64, Linux 7.0 kernel, cgroup v2 with the systemd cgroup driver. Docker Engine 29.9.2, **rootful**: `docker info` lists the apparmor, seccomp and cgroupns security options and no rootless entry. Podman is not installed. Python 3.13. | The same as CI. |
+| Maintainer dev box | Ubuntu 26.04, x86_64, Linux 7.0 kernel, cgroup v2 with the systemd cgroup driver. Docker Engine 29.9.2, **rootful**: `docker info` lists the apparmor, seccomp and cgroupns security options and no rootless entry. Podman is not installed. `kernel.apparmor_restrict_unprivileged_userns = 1`; Ubuntu ships AppArmor profiles that grant `userns` to `/usr/bin/podman`, `crun`, `runc` and `buildah`. Python 3.13. | The same as CI. |
 | Dedicated isolation runner | Does not exist yet. docs/10 section 5 requires one for isolation tests. | Nothing yet. |
 
 On the dev box (2026-11-06, `main` after #80), `agentfence doctor` passes every implemented
@@ -89,6 +89,7 @@ Read-only checks (`agentfence doctor`):
 | `runtime.available` | a supported runtime binary is on `PATH` | implemented; presence only, says nothing about rootless |
 | `cgroup.v2` | unified hierarchy mounted | implemented; marker file only, no delegation check |
 | `runtime.rootless` | the runtime's engine reports rootless operation, read from server-side information and not the CLI context name | hard-coded `UNKNOWN`; AF-0201 |
+| user namespaces allowed | the runtime can create user namespaces with the host's restrictions left on (on Ubuntu, `kernel.apparmor_restrict_unprivileged_userns` stays `1` and the runtime is covered by an AppArmor profile that grants `userns`) | not implemented; AF-0201 |
 | user namespace mapping | UID 0 in the container maps to an unprivileged host UID | not implemented; AF-0201 |
 | cgroup delegation | the controllers needed for memory, pids and CPU limits are delegated to the user's cgroup subtree | not implemented; AF-0201 |
 | seccomp and `no-new-privileges` | the runtime supports and applies both | not implemented; AF-0201 |
@@ -118,6 +119,11 @@ section 5). None of these are implemented:
   instead of `UNKNOWN`. A unit test should pin that case.
 - Developing AF-0201 locally needs rootless Podman on the dev box. Installing it is a manual
   host change made by the maintainer. AgentFence never installs or configures a runtime.
+- Ubuntu restricts unprivileged user namespaces through AppArmor, and rootless containers need
+  them. The shipped profiles are tied to paths such as `/usr/bin/podman`, so a distro-packaged
+  Podman should be allowed, while a Podman installed somewhere else would not match. Spike A must
+  show rootless Podman working with the restriction left on. Turning the restriction off to make
+  a runtime work weakens the host and is not acceptable (AGENTS.md guardrails 2 and 9).
 - The dedicated runner must not run jobs triggered by pull requests from forks. docs/10 section
   8 lists isolation jobs as manual or scheduled only.
 - After Spike A: fill in the version table with observed values and links to evidence, set the
