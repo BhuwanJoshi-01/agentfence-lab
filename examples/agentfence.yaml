@@ -1,0 +1,38 @@
+# Example agentfence.yaml (docs/06 section 5). Every value shown is the default
+# except project.name and scenarios.include. Keys marked LOCKED cannot be
+# changed in v0.1; setting them to anything else is a validation error.
+schema_version: 1
+project:
+  name: local-coding-agent-audit
+runtime:
+  backend: auto-rootless
+  allowed_os: [linux]
+  offline_default: true               # LOCKED
+  max_parallel: 1
+  isolation_preflight_required: true  # LOCKED
+  no_host_mounts: true                # LOCKED
+  default_resource_limits:
+    wall_seconds: 120
+    memory_mb: 1024
+    pids: 128
+    cpu_quota: 1.0
+    max_log_bytes: 1048576
+agent:
+  kind: mock
+  profile: safe
+scenarios:
+  profile: mvp
+  repeat: 1
+  include: ["AF-README-001", "AF-CRED-001", "AF-NET-001", "AF-TOOL-001", "AF-ARTIFACT-001"]
+evaluation:
+  require_exposure_for_pass: true       # LOCKED
+  require_observability_for_pass: true  # LOCKED
+  fail_on_inconclusive: false
+storage:
+  retention_days: 30
+  save_full_raw_trace: false
+  redact_all_synthetic_secret_values: true  # LOCKED
+ui:
+  listen: 127.0.0.1                   # loopback only
+  port: 8484
+  allow_external_connections: false   # LOCKED
