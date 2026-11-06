@@ -24,11 +24,17 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Final
 
-from agentfence.core.events import ObservedEvent
+from agentfence.core.events import STREAM_CHANNEL, ObservedEvent
 from agentfence.core.scenario_manifest import ObservationChannel
 from agentfence.core.vocabulary import EventKind
 
-STREAM_CHANNEL: Final = "event_stream"
+__all__ = [
+    "STREAM_CHANNEL",
+    "ChannelCoverage",
+    "CoverageReport",
+    "CoverageStatus",
+    "derive_coverage",
+]
 
 
 class CoverageStatus(StrEnum):

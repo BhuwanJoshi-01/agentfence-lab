@@ -211,11 +211,23 @@ def validate_stream(events: Sequence[ObservedEvent]) -> tuple[ObservedEvent, ...
     return ordered
 
 
+DEFAULT_MAX_EVENTS: Final = 5000
+STREAM_CHANNEL: Final = "event_stream"
+"""Pseudo-channel name used when the event stream itself is truncated."""
+MIN_MAX_EVENTS: Final = 2
+
+
 class EventRecorder:
     """Assigns attempt ID, contiguous sequence numbers and timestamps to new events.
 
     Trusted collectors use one recorder per attempt so sequence numbers come from the
     collector side, never from the agent (docs/07 section 5). Clocks are injectable.
+
+    The stream is bounded by ``max_events`` (a scenario's ``limits.max_events``). The
+    last slot is reserved: when it is reached the recorder writes one
+    ``collector.status`` event for channel ``event_stream`` with status ``TRUNCATED``,
+    then drops (and counts) everything after it. Truncation is therefore explicit in the
+    evidence and turns affected verdicts INCONCLUSIVE (docs/03 section 8).
     """
 
     def __init__(
@@ -224,17 +236,67 @@ class EventRecorder:
         *,
         wall_clock: Callable[[], datetime],
         monotonic_clock: Callable[[], int] | None = None,
+        max_events: int = DEFAULT_MAX_EVENTS,
+        component: str = "event_recorder",
     ) -> None:
+        if max_events < MIN_MAX_EVENTS:
+            raise ValueError(f"max_events must be at least {MIN_MAX_EVENTS}")
         self.attempt_id = attempt_id
+        self.max_events = max_events
+        self.dropped = 0
         self._wall_clock = wall_clock
         self._monotonic_clock = monotonic_clock
+        self._component = component
         self._events: list[ObservedEvent] = []
 
     @property
     def events(self) -> tuple[ObservedEvent, ...]:
         return tuple(self._events)
 
+    @property
+    def truncated(self) -> bool:
+        return len(self._events) >= self.max_events
+
     def record(  # noqa: PLR0913 - mirrors the event fields
+        self,
+        kind: EventKind,
+        *,
+        source: EventSource,
+        actor: EventActor,
+        target: EventTarget,
+        decision: Decision = Decision.NONE,
+        details: Mapping[str, DetailValue] | None = None,
+        content_hash: str | None = None,
+    ) -> ObservedEvent | None:
+        """Append an event; returns ``None`` (and counts a drop) once the stream is full."""
+        if self.truncated:
+            self.dropped += 1
+            return None
+        if len(self._events) == self.max_events - 1:
+            self.dropped += 1
+            self._append(
+                EventKind.COLLECTOR_STATUS,
+                source=EventSource(component=self._component, trust=SourceTrust.HOST_OBSERVED),
+                actor=EventActor(type=ActorType.COLLECTOR, alias="HOST"),
+                target=EventTarget(type=TargetType.COLLECTOR, alias="HOST"),
+                details={
+                    "channel": "event_stream",
+                    "status": "TRUNCATED",
+                    "limit": self.max_events,
+                },
+            )
+            return None
+        return self._append(
+            kind,
+            source=source,
+            actor=actor,
+            target=target,
+            decision=decision,
+            details=details,
+            content_hash=content_hash,
+        )
+
+    def _append(  # noqa: PLR0913
         self,
         kind: EventKind,
         *,
