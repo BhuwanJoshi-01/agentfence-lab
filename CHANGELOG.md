@@ -33,6 +33,9 @@ All notable user-visible changes are recorded here. The format follows
   invalid configuration. (AF-0102)
 - `agentfence scenarios list [--profile] [--json]`: lists validated bundled manifests;
   an invalid bundle fails the listing. (AF-0102)
+- CLI contract tests: `--help` snapshots for every command, the exact command tree,
+  exit-code documentation, stdout/stderr separation under verbose logging, and
+  locale/timezone independence. (AF-0107)
 - Structured logging to stderr only, level from `AGENTFENCE_LOG_LEVEL`, allowlisted
   fields, a 1 MiB per-process cap with a single truncation notice, and no tracebacks
   in logs. (AF-0106)
