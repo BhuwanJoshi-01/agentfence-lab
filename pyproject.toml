@@ -100,6 +100,7 @@ ignore = [
 "tests/**" = [
     "S101",    # assert is how pytest works
     "S603",    # tests spawn our own CLI with argument arrays
+    "S311",    # seeded random.Random is used for deterministic shuffles, not crypto
     "PLR0913",
 ]
 
