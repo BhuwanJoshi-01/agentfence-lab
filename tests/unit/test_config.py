@@ -98,7 +98,7 @@ def test_precedence_cli_over_project_over_user() -> None:
     assert resolved.config.scenarios.repeat == 5
     assert resolved.config.scenarios.profile == "x"
     assert resolved.provenance["scenarios.repeat"] == "cli:--repeat"
-    assert resolved.provenance["scenarios.profile"] == "user:~/.cfg"
+    assert resolved.provenance["scenarios.profile"] == "user:~/.config"
 
 
 def test_lists_are_replaced_not_merged() -> None:
