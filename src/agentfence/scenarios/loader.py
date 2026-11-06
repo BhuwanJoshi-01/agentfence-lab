@@ -83,7 +83,8 @@ def read_manifest_file(path: Path, *, display: str | None = None) -> LoadedManif
     """Read one manifest from disk without following symlinks."""
     name = display or path.name
     try:
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        # O_NONBLOCK: opening a FIFO named *.yaml must not hang waiting for a writer.
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
     except OSError as exc:
         reason = "is a symlink" if path.is_symlink() else (exc.strerror or "cannot be opened")
         raise PackError([ManifestProblem(name, reason)]) from exc
