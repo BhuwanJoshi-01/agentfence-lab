@@ -1,6 +1,6 @@
 # AgentFence Lab — Engineering Blueprint
 
-> **Status:** design specification, **not** implemented software.  
+> **Status:** pre-alpha. The package skeleton and `agentfence version` exist; everything else below is still a design specification. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
 > **Prepared:** 2026-11-06 · **Audience:** solo developer, maintainers, coding agents, security reviewers.  
 > **Category:** defensive AI coding-agent security evaluation.  
 > **Tagline:** *Test what your coding agent actually does, not merely what it claims to do.*
@@ -42,6 +42,19 @@ Also included: [example issue templates](.github/ISSUE_TEMPLATE) for feature tas
 - **Offline-first:** mock-agent tests, scenario linting, report inspection, CLI, and dashboard must work without any real model call.
 - **No real secrets** and **no live exfiltration endpoints** in scenarios. A simulated receiver is always local to the test boundary.
 - **No scanning other people's machines**, no arbitrary repository execution in default mode, no automatic configuration changes.
+
+## Try what exists today
+
+```bash
+git clone https://github.com/BhuwanJoshi-01/agentfence-lab.git
+cd agentfence-lab
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e '.[dev]'     # or: uv sync --extra dev
+agentfence version --json
+pytest -q
+```
+
+The PyPI distribution name is `agentfence-lab` (the bare `agentfence` name is taken); the CLI and import package are `agentfence`.
 
 ## Proposed user experience (future commands; not executable yet)
 

@@ -16,7 +16,14 @@ pytest tests/unit -q
 ruff check .
 ```
 
-This is the planned contributor flow; before v0.1 these commands may not work because the repository currently contains **design docs only**.
+`pip install -e '.[dev]'` and `pytest` work today; lint and type-check tooling lands with AF-0104. `uv sync --extra dev` is an equivalent, lockfile-pinned alternative.
+
+### Branches, commits and pull requests
+
+- One roadmap task per pull request, on a branch named `feat/AF-XXXX-short-description` (or `fix/`, `docs/`, `ci/`).
+- Small, self-contained commits using [Conventional Commits](https://www.conventionalcommits.org/) prefixes (`feat`, `fix`, `test`, `docs`, `build`, `ci`, `chore`, `refactor`).
+- Reference the task issue in each commit (`Refs #N`) and close it from the PR (`Closes #N`).
+- Add a `CHANGELOG.md` entry for any user-visible change.
 
 ## Contribution kinds
 
