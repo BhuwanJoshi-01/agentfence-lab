@@ -13,6 +13,10 @@ All notable user-visible changes are recorded here. The format follows
 - `agentfence version [--json]`: read-only version report; JSON mode writes only
   JSON to stdout. (AF-0101)
 - Apache-2.0 license.
+- Frozen outcome vocabulary (`agentfence.core.vocabulary`): boundary, utility and
+  infrastructure axes, event taxonomy, source trust, exit codes with documented
+  precedence, and per-artifact schema versions. See ADR-010. (AF-0006)
+- Run lifecycle state machine with auditable, timestamped transitions. (AF-0006)
 - Developer tooling: ruff (lint + format), mypy `--strict`, pytest branch coverage,
   pre-commit hooks and pip-audit. (AF-0104)
 - Credential-free CI on GitHub Actions: lint, unit tests on Python 3.12/3.13, wheel
