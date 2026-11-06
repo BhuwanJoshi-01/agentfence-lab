@@ -1,9 +1,9 @@
 # Trust boundaries
 
 This page maps every place where data or control crosses from one trust zone to another, and
-records what enforces each crossing **on `main` today**. It reflects `main` at `61a0d9b`
-(2026-11-06). Anything not yet built is marked "not implemented" with the task that will build
-it. A design intention in docs/02 or docs/03 is not counted as enforcement.
+records what enforces each crossing **on `main` today**. It reflects `main` on 2026-11-06,
+after #80 (AF-0301, `scenarios validate`) was merged. Anything not yet built is marked "not
+implemented" with the task that will build it. A design intention in docs/02 or docs/03 is not counted as enforcement.
 
 Sources: docs/02 section 2 (system context), docs/03 sections 1, 2 and 8 (assets, attack surface,
 controller threats), docs/07 section 2 (source trust). The trust order from docs/03 section 1 is:
