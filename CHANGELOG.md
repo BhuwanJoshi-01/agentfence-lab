@@ -23,6 +23,11 @@ All notable user-visible changes are recorded here. The format follows
 - Strict declarative scenario manifest schema with pairing rules and no executable
   fields. (AF-0103)
 - Adapter and host capability models; isolation state is derived fail-closed. (AF-0103)
+- XDG-aware state and config locations (`AGENTFENCE_STATE_DIR`, `XDG_STATE_HOME`,
+  `XDG_CONFIG_HOME`) with `0700` directories, refusal of loose, symlinked or
+  foreign-owned paths, and config discovery (`--config` > `AGENTFENCE_CONFIG` >
+  `./agentfence.yaml`, no upward search). (AF-0105)
+- Atomic `0600` file writes with fsync and temp-file cleanup on failure. (AF-0105)
 - Hardened YAML loader: rejects duplicate keys, anchors/aliases, non-string keys,
   multi-document streams and oversized input. (AF-0103)
 - Developer tooling: ruff (lint + format), mypy `--strict`, pytest branch coverage,
