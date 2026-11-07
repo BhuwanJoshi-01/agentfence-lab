@@ -203,7 +203,9 @@ see [SECURITY.md](SECURITY.md). Everyone is expected to follow the
 
 Apache-2.0 for code and synthetic scenario data ([LICENSE](LICENSE), [NOTICE](NOTICE),
 [ADR-014](docs/adr/0014-license.md)). The PyPI distribution name is `agentfence-lab`;
-the command and import package are `agentfence`. "AgentFence Lab" is a provisional name.
+the command and import package are `agentfence`. "AgentFence Lab" is a provisional name:
+other projects in the same space already use "AgentFence"
+([docs/research/0001-naming-availability.md](docs/research/0001-naming-availability.md)).
 
 ## Safety reminder
 
