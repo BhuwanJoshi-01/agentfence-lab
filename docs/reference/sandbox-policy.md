@@ -5,10 +5,11 @@ What a Tier 0 container launch must look like, and how the arguments are checked
 The launch arguments come from `runtime/containers.py` (`build_run_argv`) and pass an
 independent allowlist auditor (`audit_run_options`) before anything can use them.
 
-**Status:** these are argument-level guarantees. Nothing in AgentFence starts a container
-yet. Whether a running container really has each property is verified against a rootless
-engine in AF-0205 (network) and AF-0206 (applied limits). The maintainer host runs a
-rootful engine, so it cannot verify them (ADR-011).
+**Status:** the arguments are audited, and `agentfence doctor --self-test` checks the
+result from inside a running container on rootless Podman. It records an attestation (see
+[Self-test](#self-test)). On the maintainer host (rootless Podman 5.7.0, crun 1.21), all
+15 checks pass. The mock agent itself still runs in-process: no scenario is executed in a
+container yet.
 
 ## Image
 
@@ -82,11 +83,52 @@ exists (AF-0205), which is where it will run before each suite and from
 `test_reconcile.py::test_the_active_run_is_never_stale_and_containers_go_first`,
 `test_reconcile.py::test_a_forged_resource_is_never_passed_to_the_engine`.
 
-## Open points for AF-0205 and AF-0206
+## Self-test
 
-- **Workspace volume.** The fixture is copied into an engine-managed volume, never
-  bind-mounted. How the volume is populated, and how it becomes writable for the non-root
-  user, has to be settled on a rootless engine.
-- **Applied limits.** Rootless engines can ignore `--memory`, `--pids-limit` and `--cpus`
-  without cgroup v2 controller delegation. `doctor` checks delegation, but only a running
-  container shows whether the limits took effect (AF-0206).
+`agentfence doctor --self-test` runs only when every required doctor check passes and the
+pinned image is present. It never falls back to a weaker mode. It creates the labelled
+workspace volume and starts one container with exactly the arguments above (`run_container`
+in `runtime/sandbox.py`), under the process supervisor with a 120-second deadline. Every
+container and volume labelled with that run is removed afterwards, whatever happened.
+
+Inside, `runtime/probes/self_test.py` (standard library only) reports what it observes.
+The host judges it (`judge`): a missing or malformed observation is `UNKNOWN`, never a
+pass. Limits are checked as *applied* (cgroup files and a fork test), not as requested
+(AF-0206).
+
+| Check | Passes when |
+|---|---|
+| `process.non_root` | the process runs as the policy's UID (65532) |
+| `userns.mapped` | the UID map is not the identity map, and neither the sandbox user nor container root maps to host root |
+| `capabilities.none` | `CapEff` and `CapPrm` are zero |
+| `no_new_privileges` | `NoNewPrivs` is 1 |
+| `seccomp.filter` | `Seccomp` is 2 (filter mode) |
+| `rootfs.read_only` | writing to `/etc` fails with `EROFS` |
+| `tmp.size_limited` | `/tmp` is writable and no larger than the policy's size |
+| `workspace.writable` | `/workspace` is writable by the sandbox user |
+| `memory.limit` | `memory.max` equals the policy and `memory.swap.max` is 0 |
+| `pids.limit` | `pids.max` equals the policy and forking is refused (`EAGAIN`) below it |
+| `cpu.limit` | `cpu.max` matches the CPU quota |
+| `network.none` | the only interface is `lo`; a public IP, the metadata address and the host gateway are unreachable |
+| `dns.blocked` | name resolution fails |
+| `mounts.allowlisted` | every mount is engine-managed (`/dev`, `/proc`, `/sys`, `/etc/hosts`, ...), `/tmp` or `/workspace` |
+| `sockets.absent` | no socket file is reachable, including the Docker, Podman, D-Bus and X11 paths |
+
+The result is an `IsolationAttestation` (`core/attestation.py`): engine, image, policy and
+the checks with expected and observed values. Its ID is the SHA-256 of its content, so an
+edited file no longer verifies. It is saved to `<state>/attestations/<id>.json` (`0600`).
+`doctor` exits 0 only when every check passes, 3 when one fails or the self-test could not
+start, and 4 when the container could not be set up.
+
+Tests: `test_sandbox_selftest.py::test_each_weakening_fails_its_check`,
+`test_sandbox_selftest.py::test_missing_evidence_is_unknown_not_pass`,
+`test_sandbox_selftest.py::test_cleanup_runs_even_when_the_run_raises`; with a real engine,
+`tests/isolation/test_self_test_real.py`.
+
+## Open points
+
+- **Running scenarios in the container.** The mock's protected reads are observed by the
+  trusted broker, which mediates every access. Inside a container the agent would read
+  files directly, and nothing trusted would see the read. Container runs need a broker
+  across the boundary (docs/12 Spike B) before they can produce verdicts. Until then they
+  would only be `INCONCLUSIVE`.

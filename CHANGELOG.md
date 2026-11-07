@@ -87,6 +87,15 @@ All notable user-visible changes are recorded here. The format follows
   workspace volume instead of host mounts, resource caps and run labels. An allowlist
   auditor refuses any other option. Argument-level only: no container is started yet.
   See `docs/reference/sandbox-policy.md`. (AF-0203)
+- `agentfence doctor --self-test`: on a host whose required checks pass, starts one
+  disposable network-less container under the strict policy on rootless Podman, checks 15
+  isolation properties from inside it (user, user namespace, capabilities,
+  no-new-privileges, seccomp, read-only root, sized `/tmp`, workspace, applied memory/PID/CPU
+  limits, no network, no DNS, allowlisted mounts, no sockets) and saves a content-addressed
+  `IsolationAttestation`. Every labelled container and volume is removed afterwards.
+  (AF-0205, AF-0206)
+- `doctor`'s help no longer claims it starts no processes: it runs the engines' read-only
+  `info` and `image exists` queries.
 - Pinned sandbox image: official `python:3.13-alpine` by OCI image-index digest, never
   pulled at run time. `doctor` reports whether rootless Podman has it (optional
   `sandbox.image` check) and names the one-time `podman pull` command. (AF-0202)

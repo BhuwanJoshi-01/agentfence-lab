@@ -11,6 +11,7 @@ How long AgentFence Lab keeps run data and how `agentfence cleanup` removes it
 | Saved JSON report | `<state>/runs/<run-id>/report.json` | yes, after the database rows |
 | Run folders with no database record (an interrupted save) | `<state>/runs/<run-id>/` | yes, once the folder is more than an hour old |
 | Attempt workspaces left by a crash | `<state>/work/<run-id>/` | yes (also reconciled before every `agentfence test`) |
+| Isolation attestations from `doctor --self-test` | `<state>/attestations/<id>.json` | no |
 | HTML reports and export bundles written with `--output` | wherever you put them | no |
 
 `<state>` is `$AGENTFENCE_STATE_DIR`, else `$XDG_STATE_HOME/agentfence`, else
