@@ -76,13 +76,24 @@ Every container and workspace volume carries `io.agentfence.run` and
   first, then volumes, through the process supervisor, and reports failures instead of
   raising.
 
-The Docker listing commands were checked against Docker 29.9.2. Podman's output shape is
-taken from its documentation and both shapes are accepted, until a rootless runner
-confirms it. Nothing calls reconciliation yet: no container is created until the runner
-exists (AF-0205), which is where it will run before each suite and from
-`agentfence cleanup`. Tests: `test_reconcile.py::test_records_that_are_not_clearly_ours_are_ignored`,
+The listing commands and output shapes were checked against the real CLIs: Docker 29.9.2
+and rootless Podman 5.7.0. Podman reports container `Created` as Unix seconds and volume
+`CreatedAt` as RFC 3339; Docker reports container `CreatedAt` as text.
+
+`agentfence cleanup` uses this on rootless Podman. Its dry run lists leftovers by run, and
+`--apply` removes them, with the same confirmation rules as run deletion. **Any resource
+created in the last ten minutes keeps its whole run**, so a concurrent `doctor --self-test`
+or run is never torn down. A resource whose creation time is unknown counts as old.
+`run_container` also removes its own run's resources in a `finally` block, so leftovers
+mean a crash (`SIGKILL`, power loss). Podman removes containers with `--time 0`, because
+a container whose PID 1 ignores `SIGTERM` would otherwise hold removal for ten seconds.
+
+Tests: `test_reconcile.py::test_records_that_are_not_clearly_ours_are_ignored`,
 `test_reconcile.py::test_the_active_run_is_never_stale_and_containers_go_first`,
-`test_reconcile.py::test_a_forged_resource_is_never_passed_to_the_engine`.
+`test_reconcile.py::test_a_forged_resource_is_never_passed_to_the_engine`,
+`test_reconcile.py::test_a_recent_resource_keeps_its_whole_run`; with a real engine,
+`tests/isolation/test_cleanup_real.py` (a SIGKILLed run is spared while fresh and removed
+once old).
 
 ## Self-test
 

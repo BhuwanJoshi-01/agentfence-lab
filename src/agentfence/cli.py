@@ -9,12 +9,14 @@ stdout; with ``--json`` stdout carries exactly one JSON document and everything 
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import platform
 import secrets
 import sys
+import time
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -59,11 +61,19 @@ from agentfence.reporting.export import (
 from agentfence.reporting.html_report import render_html
 from agentfence.reporting.json_report import SuiteReport, build_report, report_json
 from agentfence.runtime.cleanup import (
+    RetentionPlan,
     apply_retention,
     plan_retention,
     reconcile_stale_workspaces,
 )
 from agentfence.runtime.host_probe import HostFacts, assess_host, gather_host_facts
+from agentfence.runtime.reconcile import (
+    LabelledResource,
+    ReconcileError,
+    list_labelled,
+    plan_stale,
+    remove_stale,
+)
 from agentfence.runtime.sandbox import SandboxError, save_attestation
 from agentfence.runtime.sandbox import self_test as run_self_test
 from agentfence.runtime.suite import SuiteRunResult, run_suite
@@ -725,8 +735,11 @@ def cleanup_command(
     """Delete saved runs older than the retention period. Dry run by default.
 
     Removes database rows (in one transaction) and the matching run folders, plus run
-    folders over an hour old that have no database record. Nothing outside the AgentFence
-    state directory is touched, and stale workspaces are reconciled too.
+    folders over an hour old that have no database record. With rootless Podman it also
+    removes sandbox containers and volumes left by runs that never finished (found by
+    their run label; a run with anything created in the last ten minutes is left alone).
+    Nothing outside the AgentFence state directory and its labelled sandbox resources is
+    touched, and stale workspaces are reconciled too.
     """
     if dry_run and apply:
         _fail("--dry-run and --apply cannot be combined", ExitCode.USAGE_ERROR)
@@ -737,16 +750,64 @@ def cleanup_command(
         paths = resolve_paths()
     except PathConfigError as exc:
         _fail(str(exc), ExitCode.USAGE_ERROR)
-    if not paths.database_path.exists():
+    store = None
+    if paths.database_path.exists():
+        try:
+            store = RunStore(paths.database_path)
+        except (StoreError, PermissionError) as exc:
+            _fail(str(exc), ExitCode.INFRA_FAILURE)
+    podman, leftovers, note = _stale_sandbox_resources()
+    if store is None and not leftovers:
         typer.echo("No runs recorded; nothing to clean.")
+        if note:
+            typer.echo(note)
         return
-    try:
-        store = RunStore(paths.database_path)
-    except (StoreError, PermissionError) as exc:
-        _fail(str(exc), ExitCode.INFRA_FAILURE)
-    with store:
-        plan = plan_retention(paths.runs_dir, store, older_than_days=days, now=datetime.now(UTC))
-        verb = "Deleting" if apply else "Would delete"
+    verb = "Deleting" if apply else "Would delete"
+    removal = None
+    with store if store is not None else contextlib.nullcontext():
+        plan = (
+            plan_retention(paths.runs_dir, store, older_than_days=days, now=datetime.now(UTC))
+            if store is not None
+            else None
+        )
+        _print_cleanup_plan(verb, days, plan, leftovers, note)
+        if not apply:
+            typer.echo("Dry run: nothing was deleted. Re-run with --apply to delete.")
+            return
+        has_runs = plan is not None and bool(plan.expired_runs or plan.orphan_run_dirs)
+        if not (has_runs or leftovers) or not _confirmed(yes):
+            return
+        if plan is not None and store is not None:
+            try:
+                apply_retention(plan, paths.runs_dir, store)
+            except (StoreError, OSError) as exc:
+                _fail(str(exc), ExitCode.INFRA_FAILURE)
+        if leftovers and podman is not None:
+            removal = remove_stale(podman, leftovers, engine="podman")
+    stale = reconcile_stale_workspaces(paths.state_dir / "work")
+    runs = len(plan.expired_runs) if plan else 0
+    orphans = len(plan.orphan_run_dirs) if plan else 0
+    removed = len(removal.removed) if removal else 0
+    typer.echo(
+        f"Deleted {runs} run(s), {orphans} orphaned folder(s), {len(stale.removed)} stale "
+        f"workspace(s) and {removed} sandbox resource(s)."
+    )
+    typer.echo("Copies in backups or filesystem snapshots outside AgentFence are not affected.")
+    if removal and removal.failed:
+        _fail(
+            f"{len(removal.failed)} sandbox resource(s) could not be removed",
+            ExitCode.INFRA_FAILURE,
+        )
+
+
+def _print_cleanup_plan(
+    verb: str,
+    days: int,
+    plan: RetentionPlan | None,
+    leftovers: tuple[LabelledResource, ...],
+    note: str,
+) -> None:
+    if plan is not None:
         typer.echo(
             f"{verb} {len(plan.expired_runs)} run(s) started before "
             f"{plan.cutoff.isoformat(timespec='seconds')} ({days} days) and "
@@ -756,27 +817,38 @@ def cleanup_command(
             typer.echo(f"  run     {run_id}")
         for run_id in plan.orphan_run_dirs:
             typer.echo(f"  orphan  {run_id}")
-        if not apply:
-            typer.echo("Dry run: nothing was deleted. Re-run with --apply to delete.")
-            return
-        if not (plan.expired_runs or plan.orphan_run_dirs):
-            return
-        if not yes:
-            if not sys.stdin.isatty():
-                _fail("refusing to delete without confirmation; pass --yes", ExitCode.USAGE_ERROR)
-            if not typer.confirm("Delete these permanently?", default=False):
-                typer.echo("Nothing was deleted.")
-                return
-        try:
-            apply_retention(plan, paths.runs_dir, store)
-        except (StoreError, OSError) as exc:
-            _fail(str(exc), ExitCode.INFRA_FAILURE)
-    stale = reconcile_stale_workspaces(paths.state_dir / "work")
-    typer.echo(
-        f"Deleted {len(plan.expired_runs)} run(s), {len(plan.orphan_run_dirs)} orphaned "
-        f"folder(s) and {len(stale.removed)} stale workspace(s)."
-    )
-    typer.echo("Copies in backups or filesystem snapshots outside AgentFence are not affected.")
+    if leftovers:
+        count = len(leftovers)
+        typer.echo(f"{verb} {count} sandbox resource(s) left by runs that never finished.")
+        for item in leftovers:
+            typer.echo(f"  {item.kind:<9} {item.ref[:24]:<24} run {item.run_id}")
+    if note:
+        typer.echo(note)
+
+
+def _confirmed(yes: bool) -> bool:
+    """--yes, or an interactive confirmation. Refuses (exit 2) without a terminal."""
+    if yes:
+        return True
+    if not sys.stdin.isatty():
+        _fail("refusing to delete without confirmation; pass --yes", ExitCode.USAGE_ERROR)
+    if typer.confirm("Delete these permanently?", default=False):
+        return True
+    typer.echo("Nothing was deleted.")
+    return False
+
+
+def _stale_sandbox_resources() -> tuple[str | None, tuple[LabelledResource, ...], str]:
+    """Rootless Podman resources from runs that never finished. Never raises."""
+    facts = gather_host_facts()
+    podman = facts.executables.get("podman")
+    if not podman or not any(e.name == "podman" and e.rootless for e in facts.engines):
+        return None, (), ""
+    try:
+        found = list_labelled("podman", podman)
+    except ReconcileError as exc:
+        return podman, (), f"Sandbox resources were not checked: {exc}."
+    return podman, plan_stale(found, now=time.time()), ""
 
 
 @app.command("ui")

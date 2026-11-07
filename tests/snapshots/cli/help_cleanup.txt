@@ -3,8 +3,11 @@ Usage: agentfence cleanup [OPTIONS]
   Delete saved runs older than the retention period. Dry run by default.
 
   Removes database rows (in one transaction) and the matching run folders, plus
-  run folders over an hour old that have no database record. Nothing outside the
-  AgentFence state directory is touched, and stale workspaces are reconciled
+  run folders over an hour old that have no database record. With rootless
+  Podman it also removes sandbox containers and volumes left by runs that never
+  finished (found by their run label; a run with anything created in the last
+  ten minutes is left alone). Nothing outside the AgentFence state directory and
+  its labelled sandbox resources is touched, and stale workspaces are reconciled
   too.
 
 Options:

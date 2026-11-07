@@ -228,7 +228,7 @@ def test_run_container_argv_env_and_cleanup() -> None:
     assert engine.calls[0][1:3] == ["volume", "create"]
     removed = [c for c in engine.calls if "rm" in c]
     assert removed == [
-        [PODMAN, "rm", "--force", "c" * 64],
+        [PODMAN, "rm", "--force", "--time", "0", "c" * 64],
         [PODMAN, "volume", "rm", "--force", "agentfence-t"],
     ]
 
@@ -241,7 +241,7 @@ def test_cleanup_runs_even_when_the_run_raises() -> None:
 
     with pytest.raises(KeyboardInterrupt):
         run_container(PODMAN, POLICY, ["true"], timeout=30, run=engine, supervise_fn=boom)
-    assert [PODMAN, "rm", "--force", "c" * 64] in engine.calls
+    assert [PODMAN, "rm", "--force", "--time", "0", "c" * 64] in engine.calls
 
 
 def test_volume_creation_failure_and_cleanup_failure_refuse() -> None:

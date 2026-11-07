@@ -196,7 +196,7 @@ def test_removal_order_commands_and_failures() -> None:
     engine = docker_engine(fail_remove=frozenset({VOL_OLD}))
     stale = plan_stale(list_labelled("docker", "/usr/bin/docker", engine), active_run=ACTIVE)
     engine.calls.clear()
-    result = remove_stale("/usr/bin/docker", stale, engine)
+    result = remove_stale("/usr/bin/docker", stale, engine, engine="docker")
     assert engine.calls == [
         ["/usr/bin/docker", "rm", "--force", CID_OLD],
         ["/usr/bin/docker", "volume", "rm", "--force", VOL_OLD],
@@ -211,7 +211,7 @@ def test_a_forged_resource_is_never_passed_to_the_engine() -> None:
         LabelledResource("container", "--privileged", OLD),
         LabelledResource("volume", "/home/user", OLD),
     ]
-    result = remove_stale("/usr/bin/docker", forged, engine)
+    result = remove_stale("/usr/bin/docker", forged, engine, engine="docker")
     assert engine.calls == []
     assert result.failed == tuple(sorted(forged, key=lambda r: (r.kind != "container", r.ref)))
 
@@ -232,3 +232,57 @@ def test_workspace_volumes_are_created_with_the_run_labels() -> None:
         VOL_OLD,
     )
     assert build_volume_create_argv("docker", policy) == argv
+
+
+# --- creation times and the grace period ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        ({"Created": 1794059321}, 1794059321.0),
+        ({"CreatedAt": "2026-11-07T19:33:41.349787129+05:45"}, 1794059321.349787),
+        ({"CreatedAt": "2026-11-07 13:48:41 +0000 UTC"}, 1794059321.0),
+        ({"CreatedAt": "Less than a second ago"}, None),
+        ({"Created": True}, None),
+        ({}, None),
+    ],
+)
+def test_creation_times_from_both_engines(
+    record: dict[str, object], expected: float | None
+) -> None:
+    from agentfence.runtime.reconcile import _created  # noqa: PLC0415
+
+    got = _created(record)
+    assert got == pytest.approx(expected) if expected is not None else got is None
+
+
+def test_a_recent_resource_keeps_its_whole_run() -> None:
+    now = 1_000_000.0
+    resources = [
+        LabelledResource("container", CID_ACTIVE, ACTIVE, created=now - 60),  # in progress
+        LabelledResource("volume", VOL_ACTIVE, ACTIVE, created=None),
+        LabelledResource("container", CID_OLD, OLD, created=now - 3600),
+        LabelledResource("volume", VOL_OLD, OLD, created=None),
+    ]
+    assert plan_stale(resources, now=now) == (
+        LabelledResource("container", CID_OLD, OLD),
+        LabelledResource("volume", VOL_OLD, OLD),
+    )
+    assert len(plan_stale(resources)) == 4  # without a clock nothing counts as recent
+    assert plan_stale(resources, now=now, grace=30) == plan_stale(resources)
+
+
+def test_podman_removes_without_waiting_for_sigterm() -> None:
+    calls: list[list[str]] = []
+
+    def run(argv: Sequence[str]) -> QueryResult:
+        calls.append(list(argv))
+        return QueryResult(0, b"")
+
+    stale = [LabelledResource("container", CID_OLD, OLD), LabelledResource("volume", VOL_OLD, OLD)]
+    remove_stale("/usr/bin/podman", stale, run)
+    assert calls == [
+        ["/usr/bin/podman", "rm", "--force", "--time", "0", CID_OLD],
+        ["/usr/bin/podman", "volume", "rm", "--force", VOL_OLD],
+    ]

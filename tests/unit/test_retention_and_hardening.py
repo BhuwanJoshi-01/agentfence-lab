@@ -20,6 +20,7 @@ from agentfence.core.fixtures import generate
 from agentfence.core.vocabulary import BoundaryOutcome, Variant
 from agentfence.runtime.attempt import run_attempt
 from agentfence.runtime.cleanup import plan_retention
+from agentfence.runtime.reconcile import LabelledResource, Removal
 from agentfence.scenarios import bundled_scenarios
 from agentfence.storage.db import EVENTS_NO_DELETE_TRIGGER, RunStore
 
@@ -40,6 +41,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli, "_stale_sandbox_resources", lambda: (None, (), ""))
     return home
 
 
@@ -235,3 +237,52 @@ def test_report_output_onto_an_existing_directory_is_refused(home: Path, tmp_pat
     result = af("report", run, "--output", str(tmp_path))
     assert result.exit_code == 2
     assert "already exists" in result.stderr
+
+
+# --- sandbox leftovers (AF-0207) ------------------------------------------------------------
+
+
+def leftover(kind: str = "container") -> LabelledResource:
+    ref = "e" * 64 if kind == "container" else "agentfence-old-run"
+    return LabelledResource(kind, ref, "old-run")  # type: ignore[arg-type]
+
+
+def test_leftovers_are_listed_and_removed_even_without_a_database(
+    home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    found = (leftover("container"), leftover("volume"))
+    monkeypatch.setattr(cli, "_stale_sandbox_resources", lambda: ("/usr/bin/podman", found, ""))
+    removed: list[object] = []
+
+    def fake_remove(executable: str, items: object, *args: object, **kwargs: object) -> Removal:
+        removed.append((executable, items, kwargs))
+        return Removal(removed=found, failed=())
+
+    monkeypatch.setattr(cli, "remove_stale", fake_remove)
+    dry = af("cleanup")
+    assert "Would delete 2 sandbox resource(s) left by runs that never finished." in dry.stdout
+    assert "run old-run" in dry.stdout
+    assert removed == []
+    applied = af("cleanup", "--apply", "--yes")
+    assert applied.exit_code == 0, applied.stderr
+    assert "and 2 sandbox resource(s)." in applied.stdout
+    assert removed == [("/usr/bin/podman", found, {"engine": "podman"})]
+
+
+def test_failed_leftover_removal_exits_4(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    found = (leftover(),)
+    monkeypatch.setattr(cli, "_stale_sandbox_resources", lambda: ("/usr/bin/podman", found, ""))
+    monkeypatch.setattr(cli, "remove_stale", lambda *a, **k: Removal(removed=(), failed=found))
+    result = af("cleanup", "--apply", "--yes")
+    assert result.exit_code == 4
+    assert "1 sandbox resource(s) could not be removed" in result.stderr
+
+
+def test_a_listing_problem_is_reported_not_fatal(
+    home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    note = "Sandbox resources were not checked: could not list containers with podman."
+    monkeypatch.setattr(cli, "_stale_sandbox_resources", lambda: ("/usr/bin/podman", (), note))
+    result = af("cleanup")
+    assert result.exit_code == 0
+    assert note in result.stdout
