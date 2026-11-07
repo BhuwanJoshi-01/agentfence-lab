@@ -137,3 +137,44 @@ jobs:
           python-version: "3.12"
       - run: uv export --no-dev --extra ui --no-emit-project --format requirements-txt -o requirements-runtime.txt
       - run: uvx pip-audit --strict --disable-pip -r requirements-runtime.txt
+
+  dashboard:
+    name: dashboard (types, tests, reproducible build, licenses, e2e + axe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev --extra ui
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install from the lockfile, without install scripts
+        working-directory: dashboard
+        run: npm ci --ignore-scripts
+      - name: Types and component tests
+        working-directory: dashboard
+        run: npm run typecheck && npm test
+      - name: Shipped JavaScript is permissively licensed and has no known vulnerabilities
+        working-directory: dashboard
+        run: npm run licenses && npm audit --omit=dev
+      - name: The committed build is exactly what the sources produce
+        run: |
+          (cd dashboard && npm run build)
+          if [ -n "$(git status --porcelain -- src/agentfence/api/static)" ]; then
+            git status --short -- src/agentfence/api/static
+            echo "Rebuild with 'npm run build' in dashboard/ and commit src/agentfence/api/static."
+            exit 1
+          fi
+      - name: End to end and accessibility (real agentfence ui, Chromium, axe)
+        working-directory: dashboard
+        env:
+          AGENTFENCE_BIN: ${{ github.workspace }}/.venv/bin/agentfence
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
