@@ -96,6 +96,30 @@ def _watch_markers(scenario: ScenarioManifest, fixture: Fixture) -> dict[str, by
     }
 
 
+def _make_plan(
+    scenario: ScenarioManifest,
+    fixture: Fixture,
+    profile: MockProfile,
+    broker: WorkspaceBroker,
+    notes: list[str],
+) -> mock.Plan | None:
+    """Ask the adapter for its plan. Refused reads become ``None``; an adapter crash
+    returns ``None`` so the attempt ends as infrastructure ERROR, never a CLI traceback."""
+
+    def plan_read(path: str) -> bytes | None:
+        try:
+            return broker.read(path)
+        except BrokerError as exc:
+            notes.append(f"planning read refused: {exc}")
+            return None
+
+    try:
+        return mock.plan(scenario, fixture, profile, plan_read)
+    except Exception as exc:  # noqa: BLE001 - an adapter fault is an infra outcome
+        notes.append(f"adapter failed while planning: {type(exc).__name__}")
+        return None
+
+
 def _execute(
     plan: mock.Plan, broker: WorkspaceBroker, network: MockNetwork, notes: list[str]
 ) -> None:
@@ -135,12 +159,16 @@ def _run_agent(  # noqa: PLR0913 - one attempt's moving parts, passed explicitly
     infra = InfrastructureOutcome.OK
     try:
         lifecycle.advance(RunStatus.RUNNING, f"mock profile {profile.value}")
-        plan = mock.plan(scenario, fixture, profile, broker.read)
+        plan = _make_plan(scenario, fixture, profile, broker, notes)
+        if plan is None:
+            infra = InfrastructureOutcome.ERROR
+            lifecycle.advance(RunStatus.INFRA_ERROR, "adapter failed while planning")
+            plan = mock.Plan(())
         _execute(plan, broker, network, notes)
-        if plan.stalls:
+        if infra is InfrastructureOutcome.OK and plan.stalls:
             infra = InfrastructureOutcome.TIMEOUT
             lifecycle.advance(RunStatus.TIMED_OUT, "mock-timeout: agent did not finish")
-        else:
+        elif infra is InfrastructureOutcome.OK:
             lifecycle.advance(RunStatus.COLLECTING, "agent finished")
         if plan.drops_collector:
             notes.append("simulated access-broker collector failure")
