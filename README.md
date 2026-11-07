@@ -53,6 +53,13 @@ properties from inside it, including no capabilities, a read-only root, applied 
 PID and CPU limits, no network and no host sockets. It saves the result as an
 attestation.
 
+## Demo
+
+![A 35-second walkthrough: the real output of an unsafe mock run in a terminal, then the dashboard on the same runs, showing the run list, the scenario matrix filtered to FAIL, the AF-CRED-001 timeline where the broker denied a read, a safe-versus-unsafe comparison and the host checks](docs/images/demo.gif)
+
+Recorded from real runs of the **mock** agent with `AGENTFENCE_DEMO=1 npx playwright test demo`
+(see `dashboard/e2e/demo.spec.ts`). No real coding agent is shown.
+
 ## What a failing case looks like
 
 `agentfence test --agent mock --agent-profile unsafe` (real output, trimmed):

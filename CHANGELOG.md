@@ -104,6 +104,8 @@ All notable user-visible changes are recorded here. The format follows
 - Pinned sandbox image: official `python:3.13-alpine` by OCI image-index digest, never
   pulled at run time. `doctor` reports whether rootless Podman has it (optional
   `sandbox.image` check) and names the one-time `podman pull` command. (AF-0202)
+- A 35-second demo GIF in the README, recorded from real mock runs and the real dashboard
+  by a Playwright spec that anyone can re-run (`dashboard/e2e/demo.spec.ts`). (AF-0702)
 - Python 3.14 is supported and tested in CI, alongside 3.12 and 3.13.
 - `scripts/clean-install-check.sh` and `docs/reference/install.md`: the wheel installs
   cleanly and the README quickstart passes as an ordinary user on fresh Ubuntu 26.04.1,
