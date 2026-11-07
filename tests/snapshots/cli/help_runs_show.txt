@@ -1,0 +1,10 @@
+Usage: agentfence runs show [OPTIONS] {run_id}
+
+  Show a saved run after verifying its report and evidence. Read-only.
+
+Arguments:
+  run_id  Run ID from 'agentfence runs list'.  [required]
+
+Options:
+  --json  Emit exactly one JSON document on stdout.
+  --help  Show this message and exit.

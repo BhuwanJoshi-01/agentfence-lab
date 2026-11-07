@@ -22,4 +22,6 @@ Commands:
   version    Print the AgentFence Lab version.
   doctor     Check host prerequisites and validate configuration.
   test       Run scenarios with the offline mock adapter and save the report.
+  report     Export a saved run's report after verifying it.
   scenarios  Inspect bundled scenarios.
+  runs       Inspect saved runs.
