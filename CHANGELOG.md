@@ -81,6 +81,12 @@ All notable user-visible changes are recorded here. The format follows
   block the child, bounded teardown and a recursion guard. `doctor`'s engine queries now run
   under it. Processes that leave the group with `setsid` are a documented limit until
   containers land. (AF-0204)
+- Strict Tier 0 sandbox policy (`IsolationPolicy`) and audited `podman`/`docker run`
+  arguments: non-root user, read-only root, all capabilities dropped, no-new-privileges,
+  no network, digest-pinned image never pulled, size-limited `/tmp`, an engine-managed
+  workspace volume instead of host mounts, resource caps and run labels. An allowlist
+  auditor refuses any other option. Argument-level only: no container is started yet.
+  See `docs/reference/sandbox-policy.md`. (AF-0203)
 - Preflight secret scan: `report` and `runs show` check the exact output for synthetic
   markers, private keys and credential shapes before printing or writing it, and refuse
   (exit 4) with the kind and line of each finding, never the value. (#119)
