@@ -187,17 +187,10 @@ belongs to the task named.
 3. **Resolved (#87): event details reject any host path.** `looks_like_host_path()` refuses
    absolute POSIX, `~`, Windows drive and UNC paths, `file:` URIs and text that embeds a
    well-known host directory. Covered by `test_events.py::test_details_reject_any_host_path`.
-4. **Source trust is a label, not a proof.** `source.trust` is set by whoever builds the event.
-   Nothing yet ties a `host_observed` label to a host-side collector. That depends on collectors
-   writing through a channel the agent cannot write (docs/02 section 2; AF-0403, AF-0406).
-5. **Content-addressed IDs detect accidental change, not forgery.** Anyone who can rewrite an
-   event can recompute its ID (docs/07 section 6). Append-only storage and per-artifact digests
-   are AF-0406.
-6. **Locked config invariants are not enforced at launch yet.** `no_host_mounts`,
-   `isolation_preflight_required` and `offline_default` cannot be turned off, but no runner
-   exists to honor them (M2).
-7. **`agent.kind` accepts any slug.** Nothing reads it today. When adapters land, unknown kinds
-   must be refused as unsupported. See ADR-012.
+4. **Resolved (#88): source trust is checked against a collector registry.**
+   `core/trust.py` maps each collector component to the most trust it may claim. Events
+   from unregistered components count as `agent_reported`, and claims above a component's
+   ceiling are lowered to it (evaluator 1.2.0). Covered by `test_trust_registry.py`.
 
 ## Keeping this page current
 

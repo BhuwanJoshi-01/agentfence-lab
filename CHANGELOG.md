@@ -124,6 +124,10 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- Event trust is no longer taken at face value: a collector registry caps the trust each
+  component may claim, and unregistered components cannot prove anything (evaluator
+  1.2.0). Verdict outcomes for the bundled scenarios are unchanged. (#88)
+
 - An exception inside the agent adapter now ends the attempt as INCONCLUSIVE with
   infrastructure ERROR instead of crashing `agentfence test`. (AF-0307)
 
