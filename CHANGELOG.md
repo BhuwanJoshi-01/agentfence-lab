@@ -6,6 +6,15 @@ All notable user-visible changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `runtime/read_watch.py`: an unprivileged host-side watch (fanotify) that observes reads of
+  chosen files, including reads from inside a strict-policy rootless container. This is the
+  building block for running scenarios in the sandbox (#133). Its limits (no process IDs,
+  completed opens only) are documented and tested. See
+  `docs/research/0003-in-container-evidence.md`.
+- `run_container(..., volume_ready=True)` for callers that prepare the workspace volume first.
+
 ## [0.1.0b1] - 2026-11-07
 
 First public pre-release: the **beta** stage of docs/10 section 10. It covers all five
