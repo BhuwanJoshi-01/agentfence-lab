@@ -47,6 +47,7 @@ from agentfence.reporting.export import (
     ExportError,
     VerifiedReport,
     load_verified_report,
+    preflight_scan,
     reproduction_notes,
     write_export,
 )
@@ -568,6 +569,13 @@ def _verified(run_id: str) -> VerifiedReport:
         _fail(str(exc), ExitCode.USAGE_ERROR if exc.not_found else ExitCode.INFRA_FAILURE)
 
 
+def _preflight(text: str) -> None:
+    try:
+        preflight_scan(text)
+    except ExportError as exc:
+        _fail(str(exc), ExitCode.INFRA_FAILURE)
+
+
 @runs_app.command("show")
 def runs_show(
     run_id: Annotated[str, typer.Argument(help="Run ID from 'agentfence runs list'.")],
@@ -576,12 +584,15 @@ def runs_show(
     """Show a saved run after verifying its report and evidence. Read-only."""
     verified = _verified(run_id)
     if json_output:
-        typer.echo(verified.text, nl=False)
-        return
-    typer.echo(render_summary(verified.report), nl=False)
-    typer.echo("Integrity: report hash and evidence hash chain verified")
-    for line in reproduction_notes(verified.report):
-        typer.echo(line)
+        text = verified.text
+    else:
+        text = (
+            render_summary(verified.report)
+            + "Integrity: report hash and evidence hash chain verified\n"
+            + "".join(f"{line}\n" for line in reproduction_notes(verified.report))
+        )
+    _preflight(text)
+    typer.echo(text, nl=False)
 
 
 @runs_app.command("compare")
@@ -747,6 +758,7 @@ def report_command(
         text = render_summary(verified.report) + "".join(
             f"{line}\n" for line in reproduction_notes(verified.report)
         )
+    _preflight(text)
     if output is None:
         typer.echo(text, nl=False)
         return

@@ -11,6 +11,11 @@ Before a stored report is shown or exported it must pass three checks:
 Any failure refuses the export with the specific problems. A hash chain detects
 corruption and casual tampering; it does not authenticate origin against someone who
 controls the host (ADR-013).
+
+After rendering, :func:`preflight_scan` checks the exact text about to be printed or
+written (docs/07 section 10 item 8). Reports hold no secrets by construction (alias-only
+targets, scrubbed details), so a hit means a bug upstream: the export is refused and the
+message names the kind and line of each finding, never its value.
 """
 
 from __future__ import annotations
@@ -19,7 +24,9 @@ import hashlib
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
+from agentfence.core.redaction import find_secrets
 from agentfence.reporting.json_report import SuiteReport
 from agentfence.runtime.collectors import BrokerError, read_workspace_file
 from agentfence.storage.atomic import atomic_write_text
@@ -114,6 +121,24 @@ def reproduction_notes(report: SuiteReport) -> list[str]:
         "Scenario versions: " + ", ".join(f"{sid} {ver}" for sid, ver in scenarios),
         "Fixture digests: " + ", ".join(f"{sid} {d}" for sid, d in digests),
     ]
+
+
+MAX_LISTED_FINDINGS: Final = 5
+
+
+def preflight_scan(text: str) -> None:
+    """Refuse to emit ``text`` if it contains a suspected secret. Raises ExportError."""
+    findings = find_secrets(text)
+    if not findings:
+        return
+    listed = ", ".join(f"{f.kind} on line {f.line}" for f in findings[:MAX_LISTED_FINDINGS])
+    more = len(findings) - MAX_LISTED_FINDINGS
+    raise ExportError(
+        f"refusing to export: the rendered report contains {len(findings)} suspected "
+        f"secret(s): {listed}{f' and {more} more' if more > 0 else ''}. Nothing was printed "
+        "or written. Reports should never contain secrets, so please report this as a bug "
+        "without attaching the report."
+    )
 
 
 def write_export(path: Path, text: str) -> Path:
