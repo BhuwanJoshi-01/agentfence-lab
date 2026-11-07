@@ -14,6 +14,7 @@ Usage: agentfence [OPTIONS] COMMAND [ARGS]...
     4  infrastructure failure or timeout
     5  INCONCLUSIVE result under --strict
     6  unsupported target, agent or configuration
+    130  cancelled with Ctrl-C (nothing saved, workspaces removed)
 
 Options:
   --help  Show this message and exit.

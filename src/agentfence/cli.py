@@ -49,6 +49,7 @@ from agentfence.reporting.export import (
 )
 from agentfence.reporting.html_report import render_html
 from agentfence.reporting.json_report import SuiteReport, build_report, report_json
+from agentfence.runtime.cleanup import reconcile_stale_workspaces
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.runtime.suite import SuiteRunResult, run_suite
 from agentfence.scenarios import CatalogError, bundled_scenarios
@@ -74,6 +75,7 @@ EXIT_CODES = (
     (4, "infrastructure failure or timeout"),
     (5, "INCONCLUSIVE result under --strict"),
     (6, "unsupported target, agent or configuration"),
+    (130, "cancelled with Ctrl-C (nothing saved, workspaces removed)"),
 )
 # "\b" stops click from re-wrapping the paragraph, keeping one code per line.
 EXIT_CODE_HELP = "\b\nExit codes:\n" + "\n".join(f"  {c}  {text}" for c, text in EXIT_CODES)
@@ -385,6 +387,13 @@ def _run_and_save(
     try:
         paths = resolve_paths()
         ensure_private_dir(paths.state_dir)
+        stale = reconcile_stale_workspaces(paths.state_dir / "work")
+        if stale.removed:
+            typer.echo(
+                f"agentfence: note: removed {len(stale.removed)} stale workspace(s) left by an "
+                "interrupted run",
+                err=True,
+            )
         suite = run_suite(
             selected,
             mock_profile,
@@ -399,6 +408,11 @@ def _run_and_save(
         report_path = atomic_write_text(run_dir / "report.json", text)
         with open_store(paths.state_dir) as store:
             store.save_suite(suite, report_sha256=hashlib.sha256(text.encode()).hexdigest())
+    except KeyboardInterrupt:
+        _fail(
+            "run cancelled; no results were saved and the attempt's workspace was removed",
+            ExitCode.CANCELLED,
+        )
     except (PathConfigError, PermissionError, StoreError) as exc:
         _fail(str(exc), ExitCode.INFRA_FAILURE)
     return suite, report, text, report_path

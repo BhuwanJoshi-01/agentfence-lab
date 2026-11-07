@@ -124,6 +124,8 @@ class ExitCode(IntEnum):
     INFRA_FAILURE = 4
     STRICT_INCONCLUSIVE = 5
     UNSUPPORTED = 6
+    CANCELLED = 130
+    """Interrupted by the user (Ctrl-C, SIGINT convention 128+2). Nothing is saved."""
 
 
 # Highest precedence first. USAGE_ERROR and UNSUPPORTED are raised before a run
