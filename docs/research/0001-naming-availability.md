@@ -6,6 +6,9 @@
 - **Answer:** not without real confusion. The name is already used in the same problem
   space. Choosing the name is a maintainer decision, tracked as a follow-up issue. This note
   only records the facts.
+- **Decision (2026-11-07, maintainer, #127):** keep "AgentFence Lab". The PyPI distribution
+  stays `agentfence-lab`, which is free. The README says plainly that other projects use
+  "AgentFence", and links this note.
 
 ## Package names (PyPI)
 
