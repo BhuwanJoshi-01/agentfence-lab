@@ -70,6 +70,12 @@ def _resolve(name: str) -> str:
     return "RESOLVED"
 
 
+def _hosts_entries() -> list[str]:
+    text = _read("/etc/hosts") or ""
+    lines = [" ".join(line.split("#", 1)[0].split()) for line in text.splitlines()]
+    return [line for line in lines if line][:50]
+
+
 def _sockets() -> list[str]:
     found = [p for p in KNOWN_SOCKETS if os.path.lexists(p)]
     seen = 0
@@ -146,6 +152,8 @@ def observe(expected: dict[str, int]) -> dict[str, object]:
         "connect_metadata": _connect("169.254.169.254", 80),
         "connect_host_gateway": _connect("10.0.2.2", 22),
         "dns": _resolve("example.com"),
+        "resolve_host_alias": _resolve("host.containers.internal"),
+        "hosts_entries": _hosts_entries(),
         "mount_targets": _mount_targets(),
         "sockets": _sockets(),
         "fork": _fork_until_refused(int(expected["pids"]) + 32),
