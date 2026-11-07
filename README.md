@@ -122,7 +122,8 @@ cancelled. The evaluator rules are in [docs/reference/evaluator.md](docs/referen
   `0700`, files `0600`. Reports are written elsewhere only where you pass `--output`,
   and never over an existing file.
 - **Retention:** runs are kept for 30 days by default. `agentfence cleanup` lists what
-  would be deleted, and `agentfence cleanup --apply` deletes it. See
+  would be deleted, including sandbox containers and volumes left by a crashed run, and
+  `agentfence cleanup --apply` deletes it. See
   [docs/reference/data-retention.md](docs/reference/data-retention.md).
 
 ## Local API

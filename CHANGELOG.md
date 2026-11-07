@@ -112,7 +112,8 @@ All notable user-visible changes are recorded here. The format follows
 - Stale container and volume reconciliation by run label (`runtime/reconcile.py`):
   workspace volumes are created with the run labels, leftovers from runs that never
   finished are listed, checked again client-side and force-removed (containers first).
-  Not wired into a command yet, since no container is created before the runner exists.
+  `agentfence cleanup` lists and (with `--apply`) removes them on rootless Podman, sparing
+  any run with a resource created in the last ten minutes.
   (AF-0207)
 - Preflight secret scan: `report` and `runs show` check the exact output for synthetic
   markers, private keys and credential shapes before printing or writing it, and refuse
