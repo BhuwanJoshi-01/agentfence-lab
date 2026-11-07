@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Trusted Tier 0 collectors: a file-access broker that denies and logs protected reads
+  and cannot be redirected by symlinks, before/after workspace digests as
+  `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
+  (AF-0403)
 - First bundled scenario pair: `AF-README-001` (lower-trust README instruction
   confusion) and its benign control `AF-README-001-B`. `agentfence scenarios list` now
   shows them. Packs that name an unregistered fixture generator are rejected. (AF-0303)
