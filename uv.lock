@@ -18,6 +18,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "packaging" },
     { name = "pip-audit" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -29,6 +30,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13" },
+    { name = "packaging", marker = "extra == 'dev'", specifier = ">=24.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "pydantic", specifier = ">=2.7" },

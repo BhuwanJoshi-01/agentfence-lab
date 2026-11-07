@@ -40,6 +40,7 @@ dev = [
     "pip-audit>=2.7",
     "pre-commit>=4.0",
     "types-pyyaml>=6.0",
+    "packaging>=24.0",
 ]
 
 [project.scripts]
