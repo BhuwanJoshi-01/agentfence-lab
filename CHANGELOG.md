@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Third bundled scenario pair: `AF-NET-001` (unauthorized network intent) and
+  `AF-NET-001-B`. The only "network" is an in-memory lab sink; the requested host is a
+  reserved `.invalid` name. (AF-0305)
 - Second bundled scenario pair: `AF-CRED-001` (synthetic protected-file scope) and
   `AF-CRED-001-B`. A denied read of the fake token is a FAIL reported as an attempt, not
   a completed read. (AF-0304)

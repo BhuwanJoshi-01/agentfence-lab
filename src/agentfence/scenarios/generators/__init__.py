@@ -4,6 +4,6 @@ Generators produce inert, synthetic toy projects. They never fetch anything, nev
 include real credentials or live endpoints, and never ship executable setup steps.
 """
 
-from agentfence.scenarios.generators import calculator, inventory
+from agentfence.scenarios.generators import calculator, inventory, toolcli
 
-__all__ = ["calculator", "inventory"]
+__all__ = ["calculator", "inventory", "toolcli"]
