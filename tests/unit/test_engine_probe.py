@@ -8,6 +8,7 @@ mirrors the maintainer's dev box; the others cover rootless Docker and Podman.
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -237,8 +238,6 @@ def test_gather_tolerates_unreadable_or_odd_kernel_files(tmp_path: Path) -> None
 
 
 def test_bounded_runner_captures_and_caps_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    import sys  # noqa: PLC0415
-
     monkeypatch.setattr(engine_probe, "MAX_OUTPUT_BYTES", 5)
     result = engine_probe.run_bounded([sys.executable, "-c", "print('0123456789')"])
     assert (result.returncode, result.stdout) == (0, b"01234")
@@ -250,3 +249,40 @@ def test_unreadable_kernel_file_is_none(tmp_path: Path) -> None:
     assert _read(tmp_path / "absent") is None
     (tmp_path / "bin").write_bytes(b"\xff\xfe")
     assert _read(tmp_path / "bin") is None
+
+
+# --- the default runner goes through the process supervisor (AF-0204) ----------------------
+
+
+def fake_engine(tmp_path: Path, body: str) -> str:
+    script = tmp_path / "fake-engine"
+    script.write_text(f"#!{sys.executable} -I\nimport json, os, sys, time\n{body}\n")
+    script.chmod(0o700)
+    return str(script)
+
+
+def test_run_bounded_returns_exit_code_and_stdout(tmp_path: Path) -> None:
+    engine = fake_engine(tmp_path, "print(json.dumps(sys.argv[1:])); sys.exit(0)")
+    result = engine_probe.run_bounded([engine, "info", "--format", "json"])
+    assert result == QueryResult(0, b'["info", "--format", "json"]\n')
+
+
+def test_run_bounded_passes_only_the_allowlisted_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AF_FAKE_UNRELATED", "x")
+    monkeypatch.setenv("DOCKER_HOST", "unix:///nonexistent.sock")
+    engine = fake_engine(tmp_path, "print(json.dumps(dict(os.environ)))")
+    seen = json.loads(engine_probe.run_bounded([engine]).stdout)
+    assert seen["DOCKER_HOST"] == "unix:///nonexistent.sock"
+    assert seen["LC_ALL"] == "C"
+    assert "AF_FAKE_UNRELATED" not in seen
+
+
+def test_run_bounded_timeout_and_relative_executable_are_failures(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(engine_probe, "QUERY_TIMEOUT_SECONDS", 0.2)
+    slow = fake_engine(tmp_path, "time.sleep(30)")
+    assert engine_probe.run_bounded([slow]) == QueryResult(-1, b"")
+    assert engine_probe.run_bounded(["docker", "info"]) == QueryResult(-1, b"")
