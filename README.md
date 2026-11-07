@@ -51,7 +51,7 @@ cd agentfence-lab
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e '.[dev]'     # or: uv sync --extra dev
 agentfence version --json
-agentfence doctor            # read-only host check; exits 3 until rootless verification lands (AF-0201)
+agentfence doctor            # read-only host check; exits 3 unless a rootless engine, seccomp and cgroup delegation are verified
 agentfence scenarios list    # all five MVP scenario families, each with a benign control
 agentfence test --agent mock --agent-profile unsafe   # exits 1: the mock crosses the boundary
 agentfence test --agent mock --agent-profile safe     # exits 0
@@ -62,7 +62,7 @@ pytest -q
 
 `agentfence test` writes `report.json` (schema: `src/agentfence/schemas/report.v1.schema.json`) under `~/.local/state/agentfence/runs/<run-id>/` and records the run in a local SQLite store. The mock runs in-process: it executes no workspace code and opens no network connections, and the report says plainly that no containment claim is made. Mock results test AgentFence itself, not any real coding agent.
 
-`doctor` is deliberately fail-closed. It reports `runtime.rootless` as `UNKNOWN`, and the isolation state as `UNSUPPORTED`, until real rootless verification exists. A host AgentFence can't verify never looks ready.
+`doctor` is deliberately fail-closed. It asks each container engine for its own server-side report: rootless Podman or rootless Docker passes, a rootful daemon is a `FAIL`, and an engine it cannot query is `UNKNOWN`. It also checks seccomp, cgroup controller delegation and user namespaces. A host AgentFence can't verify never looks ready.
 
 The PyPI distribution name is `agentfence-lab` (the bare `agentfence` name is taken); the CLI and import package are `agentfence`.
 

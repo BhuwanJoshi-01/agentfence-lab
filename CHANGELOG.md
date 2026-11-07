@@ -73,6 +73,11 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- `agentfence doctor` now verifies the runtime: rootless mode from each engine's own
+  report (a rootful daemon is a FAIL), seccomp, cgroup controller delegation to the
+  user, user namespaces, and AppArmor's user-namespace restriction (informational).
+  Engine queries are bounded, read-only subprocesses with a minimal environment.
+  (AF-0201, #85)
 - Ctrl-C during `agentfence test` exits 130 with nothing saved, and the next run removes
   workspaces left behind by a killed run (symlink-safe, UUID-named entries only).
   (AF-0407)

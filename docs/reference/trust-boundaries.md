@@ -176,10 +176,11 @@ boundary yet.
 These were found while writing this inventory. This page only documents them. Fixing them
 belongs to the task named.
 
-1. **Doctor does not detect a rootful runtime.** `runtime.available` passes whenever a `podman`
-   or `docker` binary is on `PATH`. Hosts come out `UNSUPPORTED` today only because
-   `runtime.rootless` is always `UNKNOWN`. AF-0201 must make a rootful engine a `FAIL`. See
-   ADR-011.
+1. **Resolved (#85, AF-0201): doctor detects a rootful runtime.** Rootless mode is read from
+   each engine's own server-side report (`docker info` security options, `podman info`
+   `host.security.rootless`); a rootful daemon is `FAIL`, an unqueryable engine `UNKNOWN`.
+   Seccomp, cgroup delegation and user namespaces are checked too
+   (`runtime/engine_probe.py`, `runtime/host_probe.py`).
 2. **Resolved (#86): human-readable CLI output is now scrubbed.** Manifest `title` and
    `legitimate_task.description` reject Unicode control and invisible formatting characters
    (`DisplayText`), and `scenarios list` / `scenarios validate` pass titles and file names
