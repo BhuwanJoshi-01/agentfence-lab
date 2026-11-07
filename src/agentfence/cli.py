@@ -25,6 +25,7 @@ from pydantic import ValidationError
 
 from agentfence import __version__
 from agentfence.adapters.mock import MockProfile
+from agentfence.core.attestation import IsolationAttestation
 from agentfence.core.comparisons import Change, RunComparison, compare_runs
 from agentfence.core.config import (
     AgentFenceConfig,
@@ -36,6 +37,7 @@ from agentfence.core.config import (
     resolve_config,
 )
 from agentfence.core.redaction import scrub_text
+from agentfence.core.sandbox_policy import SANDBOX_IMAGE
 from agentfence.core.scenario_manifest import ScenarioManifest
 from agentfence.core.vocabulary import (
     SCHEMA_VERSIONS,
@@ -61,7 +63,9 @@ from agentfence.runtime.cleanup import (
     plan_retention,
     reconcile_stale_workspaces,
 )
-from agentfence.runtime.host_probe import assess_host, gather_host_facts
+from agentfence.runtime.host_probe import HostFacts, assess_host, gather_host_facts
+from agentfence.runtime.sandbox import SandboxError, save_attestation
+from agentfence.runtime.sandbox import self_test as run_self_test
 from agentfence.runtime.suite import SuiteRunResult, run_suite
 from agentfence.scenarios import CatalogError, bundled_scenarios
 from agentfence.scenarios.loader import PackError, load_pack
@@ -185,19 +189,36 @@ def doctor(
         Path | None,
         typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
     ] = None,
+    self_test: Annotated[
+        bool,
+        typer.Option(
+            "--self-test",
+            help="Also start one disposable, network-less container under the strict policy, "
+            "check what it observes and save an attestation.",
+        ),
+    ] = False,
 ) -> None:
     """Check host prerequisites and validate configuration.
 
-    Read-only: writes no files, starts no processes or containers, never calls a model
-    and never uses the network. Exits 0 only when every required check passes, 3 when
-    sandbox runs would be refused on this host, 2 on invalid configuration.
+    Without --self-test it is read-only: it writes no files, starts no containers, never
+    calls a model and never uses the network; the only processes it starts are the
+    container engines' read-only info and image queries. With --self-test it also runs
+    one disposable rootless Podman container (no network, the strict sandbox policy),
+    checks each isolation property from inside it and saves an attestation under the
+    state directory. Exits 0 only when every required check (and the self-test, if asked
+    for) passes, 3 otherwise, 4 if the self-test could not run, 2 on invalid configuration.
     """
     resolved = _load_config(config)
     sources = _config_sources(resolved)
     log.debug("config resolved", extra={"fields": {"command": "doctor", "count": len(sources)}})
-    caps = assess_host(gather_host_facts())
+    facts = gather_host_facts()
+    caps = assess_host(facts)
     state = caps.isolation_state
     code = ExitCode.SUCCESS if state is IsolationState.OFFLINE_SAFE else ExitCode.PREFLIGHT_FAILURE
+    attestation, saved, note = (None, None, "") if not self_test else _self_test(facts, state)
+    if self_test and not (attestation and attestation.passed):
+        failed_to_run = note.startswith("could not")
+        code = ExitCode.INFRA_FAILURE if failed_to_run else ExitCode.PREFLIGHT_FAILURE
     for check in caps.checks:
         log.info(
             "host check",
@@ -212,12 +233,16 @@ def doctor(
                 "isolation_state": state.value,
                 "blocking_checks": [c.id for c in caps.blocking_checks],
                 "config_sources": sources,
+                "self_test": attestation.model_dump(mode="json") if attestation else None,
+                "self_test_note": note or None,
+                "attestation_path": _home_scrubbed(saved) if saved else None,
                 "exit_code": int(code),
             }
         )
         raise typer.Exit(int(code))
 
-    typer.echo(f"AgentFence Lab {__version__} doctor (read-only)")
+    mode = "with self-test" if self_test else "read-only"
+    typer.echo(f"AgentFence Lab {__version__} doctor ({mode})")
     typer.echo(f"Host: {caps.os} {caps.arch} | Python {caps.python}")
     typer.echo("")
     width = max(len(c.id) for c in caps.checks)
@@ -234,9 +259,54 @@ def doctor(
         for check in blocking:
             typer.echo(f"  {check.id} [{check.status.value}]: {check.remedy}")
     typer.echo(f"Config: {', '.join(sources) if sources else 'built-in defaults'}")
+    if self_test:
+        _print_self_test(attestation, saved, note)
     if code is not ExitCode.SUCCESS:
         typer.echo("Sandbox runs will be refused on this host until the blocking checks pass.")
     raise typer.Exit(int(code))
+
+
+def _home_scrubbed(path: Path) -> str:
+    return scrub_text(str(path), home=os.environ.get("HOME"))
+
+
+def _self_test(
+    facts: HostFacts, state: IsolationState
+) -> tuple[IsolationAttestation | None, Path | None, str]:
+    """Run the container self-test when the host allows it. Never falls back."""
+    if state is not IsolationState.OFFLINE_SAFE:
+        return None, None, "skipped: every required check must pass first"
+    podman = facts.executables.get("podman")
+    engine = next((e for e in facts.engines if e.name == "podman" and e.rootless), None)
+    if podman is None or engine is None:
+        return None, None, "skipped: the self-test needs rootless Podman"
+    if facts.sandbox_image_present is not True:
+        return None, None, f"skipped: pull the pinned image first: podman pull {SANDBOX_IMAGE}"
+    try:
+        attestation = run_self_test(podman, engine.version or "unknown", now=datetime.now(UTC))
+        saved = save_attestation(resolve_paths(), attestation)
+    except (SandboxError, PathConfigError, PermissionError, OSError) as exc:
+        return None, None, f"could not run the self-test: {scrub_text(str(exc))}"
+    return attestation, saved, ""
+
+
+def _print_self_test(
+    attestation: IsolationAttestation | None, saved: Path | None, note: str
+) -> None:
+    typer.echo("")
+    if attestation is None:
+        typer.echo(f"Self-test: {note}")
+        return
+    typer.echo(
+        f"Self-test: one disposable container, strict policy, rootless Podman "
+        f"{attestation.engine_version}"
+    )
+    width = max(len(c.id) for c in attestation.checks)
+    for check in attestation.checks:
+        typer.echo(f"  {check.status.value:<8} {check.id:<{width}}  {scrub_text(check.observed)}")
+    verdict = "PASSED" if attestation.passed else "FAILED"
+    where = f" saved to {_home_scrubbed(saved)}" if saved else ""
+    typer.echo(f"Self-test {verdict}. Attestation {attestation.attestation_id}{where}")
 
 
 @scenarios_app.command("list")

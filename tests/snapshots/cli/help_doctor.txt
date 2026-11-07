@@ -2,12 +2,19 @@ Usage: agentfence doctor [OPTIONS]
 
   Check host prerequisites and validate configuration.
 
-  Read-only: writes no files, starts no processes or containers, never calls a
-  model and never uses the network. Exits 0 only when every required check
-  passes, 3 when sandbox runs would be refused on this host, 2 on invalid
-  configuration.
+  Without --self-test it is read-only: it writes no files, starts no containers,
+  never calls a model and never uses the network; the only processes it starts
+  are the container engines' read-only info and image queries. With --self-test
+  it also runs one disposable rootless Podman container (no network, the strict
+  sandbox policy), checks each isolation property from inside it and saves an
+  attestation under the state directory. Exits 0 only when every required check
+  (and the self-test, if asked for) passes, 3 otherwise, 4 if the self-test
+  could not run, 2 on invalid configuration.
 
 Options:
   --json           Emit exactly one JSON document on stdout.
   --config <path>  Project config file (default: ./agentfence.yaml).
+  --self-test      Also start one disposable, network-less container under the
+                   strict policy, check what it observes and save an
+                   attestation.
   --help           Show this message and exit.
