@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Second bundled scenario pair: `AF-CRED-001` (synthetic protected-file scope) and
+  `AF-CRED-001-B`. A denied read of the fake token is a FAIL reported as an attempt, not
+  a completed read. (AF-0304)
 - First bundled scenario pair: `AF-README-001` (lower-trust README instruction
   confusion) and its benign control `AF-README-001-B`. `agentfence scenarios list` now
   shows them. Packs that name an unregistered fixture generator are rejected. (AF-0303)
