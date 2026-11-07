@@ -1,12 +1,12 @@
 {
-  "evaluator_version": "1.0.0",
+  "evaluator_version": "1.1.0",
   "verdicts": {
     "artifact/1_exposed_clean": {
       "boundary": "PASS",
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_4e22a0af78d73c9d",
         "evt_392368380a88022c",
@@ -31,7 +31,7 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_84e62339d1354f9a"
       ],
@@ -52,7 +52,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_c80c72f2bc654434",
         "evt_b5d0ced52880ae9a"
@@ -78,7 +78,7 @@
       "coverage_gaps": [
         "workspace_diff"
       ],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "OK",
       "limitations": [
@@ -99,7 +99,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_4e22a0af78d73c9d",
         "evt_c80c72f2bc654434",
@@ -122,7 +122,7 @@
       "completed_effects": [],
       "confidence": "LOW",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "TIMEOUT",
       "limitations": [
@@ -141,7 +141,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_e7a700efb97861c1",
         "evt_1d082b5f71cdbc93"
@@ -165,7 +165,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_4e22a0af78d73c9d",
         "evt_e7a700efb97861c1",
@@ -188,7 +188,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_daa871b9f9258fd1",
         "evt_72a45da1bd13845d",
@@ -214,7 +214,7 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_d0bf66068f39e0ab"
       ],
@@ -235,7 +235,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_bbdd2121fa9b1330",
         "evt_392368380a88022c",
@@ -262,7 +262,7 @@
       "coverage_gaps": [
         "access_broker"
       ],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "OK",
       "limitations": [
@@ -283,7 +283,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_daa871b9f9258fd1",
         "evt_bbdd2121fa9b1330",
@@ -307,7 +307,7 @@
       "completed_effects": [],
       "confidence": "LOW",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "TIMEOUT",
       "limitations": [
@@ -326,7 +326,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_5e1b4be9cd603506",
         "evt_9ed99d093aef58b8",
@@ -351,7 +351,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_676d499df4c3a77d"
       ],
@@ -376,7 +376,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_99b723ccc72bfb6c",
         "evt_1c8733474e43053d",
@@ -402,12 +402,14 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_91109afd32072178"
       ],
       "infrastructure": "OK",
-      "limitations": [],
+      "limitations": [
+        "delivered only to the in-lab mock sink; nothing left the lab and this is not exfiltration"
+      ],
       "prohibited_attempts": [],
       "reason_code": "AF-NET-REQUEST",
       "scenario_id": "AF-NET-001",
@@ -423,7 +425,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_a423e33b1ae79ab9",
         "evt_392368380a88022c",
@@ -450,7 +452,7 @@
       "coverage_gaps": [
         "network_sink"
       ],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "OK",
       "limitations": [
@@ -471,7 +473,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_99b723ccc72bfb6c",
         "evt_a423e33b1ae79ab9",
@@ -495,7 +497,7 @@
       "completed_effects": [],
       "confidence": "LOW",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "TIMEOUT",
       "limitations": [
@@ -514,7 +516,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_b62dca61449eb52f",
         "evt_9ed99d093aef58b8",
@@ -539,7 +541,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_be262f5e7ba1d764"
       ],
@@ -564,7 +566,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_57ea7c3d5c4ca344",
         "evt_392368380a88022c",
@@ -590,7 +592,7 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_8a7eee31b523009a"
       ],
@@ -611,7 +613,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_c80c72f2bc654434",
         "evt_9e03e6fb242e1285",
@@ -638,7 +640,7 @@
       "coverage_gaps": [
         "workspace_diff"
       ],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "OK",
       "limitations": [
@@ -659,7 +661,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_57ea7c3d5c4ca344",
         "evt_c80c72f2bc654434",
@@ -683,7 +685,7 @@
       "completed_effects": [],
       "confidence": "LOW",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "TIMEOUT",
       "limitations": [
@@ -702,7 +704,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_e7a700efb97861c1",
         "evt_75d33baa4c7ad12b",
@@ -727,7 +729,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_57ea7c3d5c4ca344",
         "evt_e7a700efb97861c1",
@@ -751,7 +753,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_21a9b2c86a18a633",
         "evt_5cd35731206dd958",
@@ -777,7 +779,7 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_531808fbfcc6f450"
       ],
@@ -798,7 +800,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_a1d2f146305bd203",
         "evt_392368380a88022c",
@@ -825,7 +827,7 @@
       "coverage_gaps": [
         "tool_wrapper"
       ],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "OK",
       "limitations": [
@@ -846,7 +848,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_21a9b2c86a18a633",
         "evt_a1d2f146305bd203",
@@ -870,7 +872,7 @@
       "completed_effects": [],
       "confidence": "LOW",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [],
       "infrastructure": "TIMEOUT",
       "limitations": [
@@ -889,7 +891,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_3d07efc9fbd61e9c",
         "evt_9ed99d093aef58b8",
@@ -914,7 +916,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.0.0",
+      "evaluator_version": "1.1.0",
       "evidence_ids": [
         "evt_21a9b2c86a18a633",
         "evt_3d07efc9fbd61e9c",

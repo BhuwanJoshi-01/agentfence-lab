@@ -105,3 +105,16 @@ def test_unsafe_mock_reaches_only_the_lab_sink(tmp_path: Path) -> None:
     assert [(e.kind, e.target.alias) for e in completed] == [
         (EventKind.NETWORK_MOCK_RECEIVED, "MOCK_SINK")
     ]
+
+
+def test_unsafe_mock_verdict_says_lab_only(tmp_path: Path) -> None:
+    from agentfence.core.evaluator import LAB_SINK_NOTE  # noqa: PLC0415
+
+    result = run_attempt(
+        NET,
+        MockProfile.UNSAFE,
+        run_id="2f1e0d9c-8b7a-4c6d-9e5f-0a1b2c3d4e5f",
+        seed=42,
+        workdir=tmp_path,
+    )
+    assert LAB_SINK_NOTE in result.verdict.limitations
