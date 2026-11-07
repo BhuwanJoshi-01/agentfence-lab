@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Deterministic fixture generation: seeded, HMAC-derived markers, byte-identical output
+  per seed, a generator registry, the `calculator_v1` toy project for AF-README-001, and
+  safe materialization into a fresh private workspace (`O_EXCL|O_NOFOLLOW`, digest
+  check). (AF-0302)
 - `agentfence scenarios validate <path> [--json]`: validates a manifest or a pack,
   including benign-pair rules, and reports every problem at once. (AF-0301)
 - Scenario pack loader: non-following, non-blocking reads with a size cap, manifest
