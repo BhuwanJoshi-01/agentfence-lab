@@ -45,6 +45,7 @@ from agentfence.reporting.export import (
     reproduction_notes,
     write_export,
 )
+from agentfence.reporting.html_report import render_html
 from agentfence.reporting.json_report import build_report, report_json
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.runtime.suite import run_suite
@@ -522,13 +523,14 @@ def runs_show(
 class ReportFormat(StrEnum):
     JSON = "json"
     TEXT = "text"
+    HTML = "html"
 
 
 @app.command("report")
 def report_command(
     run_id: Annotated[str, typer.Argument(help="Run ID from 'agentfence runs list'.")],
     output_format: Annotated[
-        ReportFormat, typer.Option("--format", help="json or text.")
+        ReportFormat, typer.Option("--format", help="json, text or html (self-contained).")
     ] = ReportFormat.TEXT,
     output: Annotated[
         Path | None,
@@ -538,11 +540,14 @@ def report_command(
     """Export a saved run's report after verifying it.
 
     Read-only unless --output is given; refuses to export if the report or its evidence
-    fails verification. HTML export arrives with AF-0503.
+    fails verification. HTML is a single offline file with a strict Content-Security-Policy,
+    no scripts and no remote resources.
     """
     verified = _verified(run_id)
     if output_format is ReportFormat.JSON:
         text = verified.text
+    elif output_format is ReportFormat.HTML:
+        text = render_html(verified.report, notes=reproduction_notes(verified.report))
     else:
         text = render_summary(verified.report) + "".join(
             f"{line}\n" for line in reproduction_notes(verified.report)

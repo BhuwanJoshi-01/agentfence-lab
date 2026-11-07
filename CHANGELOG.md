@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- `agentfence report <run-id> --format html`: a single offline HTML file with a strict
+  Content-Security-Policy (no scripts, no remote resources), escaped content, inert
+  embedded JSON and accessible tables. (AF-0503)
 - Fixture integrity: pinned digests for every generator, variant and several seeds;
   a generator change without a version bump fails CI; generation is identical across
   processes, hash seeds, locales and timezones. New `scenario-lint` CI job. (AF-0309)

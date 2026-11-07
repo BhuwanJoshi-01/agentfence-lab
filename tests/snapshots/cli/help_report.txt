@@ -3,12 +3,14 @@ Usage: agentfence report [OPTIONS] {run_id}
   Export a saved run's report after verifying it.
 
   Read-only unless --output is given; refuses to export if the report or its
-  evidence fails verification. HTML export arrives with AF-0503.
+  evidence fails verification. HTML is a single offline file with a strict
+  Content-Security-Policy, no scripts and no remote resources.
 
 Arguments:
   run_id  Run ID from 'agentfence runs list'.  [required]
 
 Options:
-  --format <json|text>  json or text.  [default: text]
-  --output <path>       Write to this new file (never overwrites).
-  --help                Show this message and exit.
+  --format <json|text|html>  json, text or html (self-contained).  [default:
+                             text]
+  --output <path>            Write to this new file (never overwrites).
+  --help                     Show this message and exit.
