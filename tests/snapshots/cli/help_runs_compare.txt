@@ -1,0 +1,15 @@
+Usage: agentfence runs compare [OPTIONS] {baseline} {candidate}
+
+  Compare two saved runs scenario by scenario. Read-only.
+
+  Both runs are verified first. Pairs whose scenario version, evaluator version,
+  fixture (seed), isolation tier or agent differ are INCOMPARABLE, never
+  silently compared. Exits 1 when anything REGRESSED, otherwise 0.
+
+Arguments:
+  baseline   Baseline run ID.  [required]
+  candidate  Candidate run ID.  [required]
+
+Options:
+  --json  Emit exactly one JSON document on stdout.
+  --help  Show this message and exit.
