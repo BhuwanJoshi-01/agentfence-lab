@@ -75,6 +75,12 @@ All notable user-visible changes are recorded here. The format follows
   (AF-0403)
 - End-to-end golden outcomes for all 60 bundled scenario × mock profile combinations,
   plus a pinned partial-evidence case. (AF-0408)
+- Bounded process supervisor (`agentfence.runtime.supervisor`): argv with an absolute
+  executable and no shell, an explicit environment, its own process group, `SIGTERM` then
+  `SIGKILL` at the deadline, leftover group members killed, capped stdout/stderr that never
+  block the child, bounded teardown and a recursion guard. `doctor`'s engine queries now run
+  under it. Processes that leave the group with `setsid` are a documented limit until
+  containers land. (AF-0204)
 - `agentfence cleanup`: retention based on `storage.retention_days` (or `--older-than`).
   Dry run by default; `--apply` needs confirmation or `--yes`. Expired runs are purged from
   the database in one transaction with the append-only trigger restored, then their folders

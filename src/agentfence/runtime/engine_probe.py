@@ -5,8 +5,9 @@ Rootless mode is judged from the **engine's own server-side report**, never from
 CLI context name (docs/03 section 4): ``docker info`` must list ``name=rootless`` in its
 security options; ``podman info`` must report ``host.security.rootless = true``.
 
-Queries are bounded: argument arrays (no shell), a minimal environment, a timeout and a
-cap on output. Nothing is created, pulled or started; any failure becomes "unknown",
+Queries run under the process supervisor (AF-0204): argument arrays (no shell), an
+absolute executable, a minimal environment, a timeout that kills the whole process group
+and a cap on output. Nothing is created, pulled or started; any failure becomes "unknown",
 never "pass".
 """
 
@@ -14,10 +15,17 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Final, Literal
+
+from agentfence.runtime.supervisor import (
+    ProcessOutcome,
+    ProcessSpec,
+    RecursiveInvocationError,
+    supervise,
+)
 
 EngineName = Literal["podman", "docker"]
 QUERY_TIMEOUT_SECONDS: Final = 15
@@ -67,19 +75,28 @@ def _minimal_env() -> dict[str, str]:
 
 
 def run_bounded(argv: Sequence[str]) -> QueryResult:
-    """Default runner: no shell, minimal env, timeout, capped output."""
+    """Default runner: the process supervisor with a minimal env, timeout and output cap.
+
+    Output past the cap is never held in memory, and a timeout kills the engine CLI's
+    whole process group (credential helpers, plugins). An executable that is not an
+    absolute path (a relative ``PATH`` entry) is refused. Any failure is ``-1``.
+    """
     try:
-        done = subprocess.run(  # noqa: S603 - fixed argv, executable resolved via PATH lookup
-            list(argv),
-            capture_output=True,
-            timeout=QUERY_TIMEOUT_SECONDS,
-            env=_minimal_env(),
-            check=False,
-            stdin=subprocess.DEVNULL,
+        result = supervise(
+            ProcessSpec(
+                argv=tuple(argv),
+                cwd=Path("/"),
+                timeout_seconds=QUERY_TIMEOUT_SECONDS,
+                env=_minimal_env(),
+                max_stdout_bytes=MAX_OUTPUT_BYTES,
+                max_stderr_bytes=0,
+            )
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except (ValueError, RecursiveInvocationError):
         return QueryResult(returncode=-1, stdout=b"")
-    return QueryResult(returncode=done.returncode, stdout=done.stdout[:MAX_OUTPUT_BYTES])
+    if result.outcome is not ProcessOutcome.EXITED or result.exit_code is None:
+        return QueryResult(returncode=-1, stdout=b"")
+    return QueryResult(returncode=result.exit_code, stdout=result.stdout.data)
 
 
 def parse_docker_info(data: Mapping[str, Any]) -> EngineFacts:
