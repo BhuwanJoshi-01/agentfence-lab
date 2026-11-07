@@ -104,6 +104,10 @@ All notable user-visible changes are recorded here. The format follows
 - Pinned sandbox image: official `python:3.13-alpine` by OCI image-index digest, never
   pulled at run time. `doctor` reports whether rootless Podman has it (optional
   `sandbox.image` check) and names the one-time `podman pull` command. (AF-0202)
+- Python 3.14 is supported and tested in CI, alongside 3.12 and 3.13.
+- `scripts/clean-install-check.sh` and `docs/reference/install.md`: the wheel installs
+  cleanly and the README quickstart passes as an ordinary user on fresh Ubuntu 26.04.1,
+  Debian 13 and Fedora 43 containers, pinned by digest. (AF-0701)
 - Read-only dashboard served by `agentfence ui` (React, TypeScript, Vite; prebuilt in the
   package, no Node needed to use it). It shows runs with separate outcome counters, run
   detail with a filterable scenario matrix, attempt timelines with trust tags, run

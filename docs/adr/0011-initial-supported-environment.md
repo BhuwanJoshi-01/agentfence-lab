@@ -144,3 +144,9 @@ This is one machine, not Spike A's dedicated runner, so the version table above 
 "to be confirmed". It does mean the container work in AF-0205, AF-0206 and AF-0208 can be
 verified against a real rootless engine.
 
+## Update 2026-11-07: Python 3.14 and clean installs
+
+Ubuntu 26.04 ships Python 3.14 and Fedora 43 ships 3.14. Python 3.14 joined the CI test
+matrix, so 3.12, 3.13 and 3.14 are supported. A clean install of the wheel passes the README
+quickstart on Ubuntu 26.04.1, Debian 13 and Fedora 43 (`docs/reference/install.md`, AF-0701).
+

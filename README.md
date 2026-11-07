@@ -21,7 +21,8 @@ behind a verdict.
 
 ## Quickstart (offline, no API keys)
 
-Needs Linux on x86_64 and Python 3.12 or 3.13.
+Needs Linux on x86_64 and Python 3.12, 3.13 or 3.14. Other ways to install, and the
+distributions a clean install is verified on, are in [docs/reference/install.md](docs/reference/install.md).
 
 ```bash
 git clone https://github.com/BhuwanJoshi-01/agentfence-lab.git
