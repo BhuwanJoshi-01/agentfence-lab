@@ -45,6 +45,12 @@ delegation and user namespaces. A rootful Docker daemon is a `FAIL`, and anythin
 cannot verify is `UNKNOWN`. Until every required check passes it reports `UNSUPPORTED`.
 The mock suite does not need a container, so it runs anyway and says so in every report.
 
+On a host where it passes, `agentfence doctor --self-test` goes further. It starts one
+disposable, network-less container under the strict policy and checks 15 isolation
+properties from inside it, including no capabilities, a read-only root, applied memory,
+PID and CPU limits, no network and no host sockets. It saves the result as an
+attestation.
+
 ## What a failing case looks like
 
 `agentfence test --agent mock --agent-profile unsafe` (real output, trimmed):
@@ -132,10 +138,11 @@ agentfence ui --port 8484
 
 ## Limitations
 
-- **No sandbox.** The mock runs inside the AgentFence process, against a private temporary
-  directory. The strict container policy exists as audited launch arguments
-  ([docs/reference/sandbox-policy.md](docs/reference/sandbox-policy.md)), but no container
-  is started, and containment has not been verified on a rootless engine.
+- **Scenarios do not run in the sandbox yet.** The mock runs inside the AgentFence process,
+  against a private temporary directory. The strict container policy is verified on
+  rootless Podman by `doctor --self-test`
+  ([docs/reference/sandbox-policy.md](docs/reference/sandbox-policy.md)), but running
+  scenarios inside it needs a trusted broker across the container boundary first.
 - **No real agents.** Codex, Claude Code and OpenCode adapters are planned only after an
   isolation and credential review (milestone M8). Nothing here says anything about how a
   real agent behaves.

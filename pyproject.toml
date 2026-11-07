@@ -110,6 +110,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Typer commands expose every documented CLI option as a parameter.
 "src/agentfence/cli.py" = ["PLR0913", "PLR0917"]
+# Runs inside the sandbox container on its own Python: stdlib os paths, and /tmp is the
+# container's private size-limited tmpfs, not a shared host directory.
+"src/agentfence/runtime/probes/*.py" = ["S108", "PTH"]
 "tests/**" = [
     "S101",    # assert is how pytest works
     "S603",    # tests spawn our own CLI with argument arrays

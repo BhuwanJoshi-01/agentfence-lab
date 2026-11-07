@@ -68,7 +68,7 @@ class QueryResult:
 Runner = Callable[[Sequence[str]], QueryResult]
 
 
-def _minimal_env() -> dict[str, str]:
+def minimal_engine_env() -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k in _ENV_ALLOWLIST}
     env["LC_ALL"] = "C"
     return env
@@ -87,7 +87,7 @@ def run_bounded(argv: Sequence[str]) -> QueryResult:
                 argv=tuple(argv),
                 cwd=Path("/"),
                 timeout_seconds=QUERY_TIMEOUT_SECONDS,
-                env=_minimal_env(),
+                env=minimal_engine_env(),
                 max_stdout_bytes=MAX_OUTPUT_BYTES,
                 max_stderr_bytes=0,
             )

@@ -110,7 +110,7 @@ def test_bounded_runner_handles_missing_executable() -> None:
 def test_bounded_runner_uses_minimal_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "should-not-leak")
     monkeypatch.setenv("DOCKER_HOST", "unix:///run/user/1000/docker.sock")
-    env = engine_probe._minimal_env()
+    env = engine_probe.minimal_engine_env()
     assert "OPENAI_API_KEY" not in env
     assert env["DOCKER_HOST"] == "unix:///run/user/1000/docker.sock"
     assert env["LC_ALL"] == "C"
