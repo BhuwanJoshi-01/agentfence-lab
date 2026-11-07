@@ -612,27 +612,7 @@ def runs_compare(
     result = compare_runs(base, cand)
     code = ExitCode.BOUNDARY_FAIL if result.has_regressions else ExitCode.SUCCESS
     if json_output:
-        _emit_json(
-            {
-                "schema_version": SCHEMA_VERSIONS["report"],
-                "baseline_run": result.baseline_run,
-                "candidate_run": result.candidate_run,
-                "run_level_reasons": list(result.run_level_reasons),
-                "counts": {c.value: result.count(c) for c in Change},
-                "pairs": [
-                    {
-                        "scenario_id": p.scenario_id,
-                        "variant": p.variant,
-                        "repetition": p.repetition,
-                        "change": p.change.value,
-                        "baseline": p.baseline,
-                        "candidate": p.candidate,
-                        "reasons": list(p.reasons),
-                    }
-                    for p in result.pairs
-                ],
-            }
-        )
+        _emit_json(result.as_dict())
         raise typer.Exit(int(code))
     typer.echo(f"Baseline:  {result.baseline_run}")
     typer.echo(f"Candidate: {result.candidate_run}")

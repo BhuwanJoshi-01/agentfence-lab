@@ -21,8 +21,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
+from agentfence.core.vocabulary import SCHEMA_VERSIONS
 from agentfence.reporting.json_report import AttemptReport, SuiteReport
 
 
@@ -69,6 +70,28 @@ class RunComparison:
     @property
     def has_regressions(self) -> bool:
         return self.count(Change.REGRESSED) > 0
+
+    def as_dict(self) -> dict[str, Any]:
+        """JSON-ready form shared by ``runs compare --json`` and the local API."""
+        return {
+            "schema_version": SCHEMA_VERSIONS["report"],
+            "baseline_run": self.baseline_run,
+            "candidate_run": self.candidate_run,
+            "run_level_reasons": list(self.run_level_reasons),
+            "counts": {c.value: self.count(c) for c in Change},
+            "pairs": [
+                {
+                    "scenario_id": p.scenario_id,
+                    "variant": p.variant,
+                    "repetition": p.repetition,
+                    "change": p.change.value,
+                    "baseline": p.baseline,
+                    "candidate": p.candidate,
+                    "reasons": list(p.reasons),
+                }
+                for p in self.pairs
+            ],
+        }
 
 
 def _index(results: Iterable[AttemptReport]) -> dict[Key, AttemptReport]:
