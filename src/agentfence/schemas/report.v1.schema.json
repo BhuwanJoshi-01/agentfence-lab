@@ -1,0 +1,506 @@
+{
+  "$defs": {
+    "AgentReport": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "default": null,
+          "title": "Model",
+          "type": "null"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "profile"
+      ],
+      "title": "AgentReport",
+      "type": "object"
+    },
+    "AttemptReport": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "boundary": {
+          "title": "Boundary",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "completed_effects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Completed Effects",
+          "type": "array"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "coverage_gaps": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Coverage Gaps",
+          "type": "array"
+        },
+        "evaluator_version": {
+          "title": "Evaluator Version",
+          "type": "string"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventReport"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "final_status": {
+          "title": "Final Status",
+          "type": "string"
+        },
+        "finding_code": {
+          "title": "Finding Code",
+          "type": "string"
+        },
+        "fixture_digest": {
+          "title": "Fixture Digest",
+          "type": "string"
+        },
+        "impact_scope": {
+          "const": "synthetic laboratory fixture only",
+          "default": "synthetic laboratory fixture only",
+          "title": "Impact Scope",
+          "type": "string"
+        },
+        "infrastructure": {
+          "title": "Infrastructure",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "prohibited_attempts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prohibited Attempts",
+          "type": "array"
+        },
+        "repetition": {
+          "title": "Repetition",
+          "type": "integer"
+        },
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "scenario_version": {
+          "title": "Scenario Version",
+          "type": "string"
+        },
+        "utility": {
+          "title": "Utility",
+          "type": "string"
+        },
+        "utility_evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Utility Evidence",
+          "type": "array"
+        },
+        "variant": {
+          "enum": [
+            "adversarial",
+            "benign"
+          ],
+          "title": "Variant",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "scenario_id",
+        "scenario_version",
+        "category",
+        "variant",
+        "repetition",
+        "boundary",
+        "utility",
+        "infrastructure",
+        "finding_code",
+        "confidence",
+        "evaluator_version",
+        "evidence_ids",
+        "prohibited_attempts",
+        "completed_effects",
+        "utility_evidence",
+        "coverage_gaps",
+        "limitations",
+        "fixture_digest",
+        "final_status",
+        "events"
+      ],
+      "title": "AttemptReport",
+      "type": "object"
+    },
+    "EventReport": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Content Hash"
+        },
+        "decision": {
+          "title": "Decision",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Details",
+          "type": "object"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "source_component": {
+          "title": "Source Component",
+          "type": "string"
+        },
+        "source_trust": {
+          "title": "Source Trust",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "sequence",
+        "timestamp",
+        "kind",
+        "source_component",
+        "source_trust",
+        "target",
+        "decision",
+        "details",
+        "content_hash"
+      ],
+      "title": "EventReport",
+      "type": "object"
+    },
+    "IsolationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "attestation": {
+          "default": null,
+          "title": "Attestation",
+          "type": "null"
+        },
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tier",
+        "claim"
+      ],
+      "title": "IsolationReport",
+      "type": "object"
+    },
+    "RatioReport": {
+      "additionalProperties": false,
+      "properties": {
+        "denominator": {
+          "minimum": 0,
+          "title": "Denominator",
+          "type": "integer"
+        },
+        "numerator": {
+          "minimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "wilson_95": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wilson 95"
+        }
+      },
+      "required": [
+        "numerator",
+        "denominator",
+        "value",
+        "wilson_95"
+      ],
+      "title": "RatioReport",
+      "type": "object"
+    },
+    "RedactionReport": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true,
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "file_contents_included": {
+          "const": false,
+          "default": false,
+          "title": "File Contents Included",
+          "type": "boolean"
+        },
+        "raw_transcript_included": {
+          "const": false,
+          "default": false,
+          "title": "Raw Transcript Included",
+          "type": "boolean"
+        }
+      },
+      "title": "RedactionReport",
+      "type": "object"
+    },
+    "SummaryReport": {
+      "additionalProperties": false,
+      "properties": {
+        "adversarial": {
+          "title": "Adversarial",
+          "type": "integer"
+        },
+        "attempts": {
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "benign": {
+          "title": "Benign",
+          "type": "integer"
+        },
+        "benign_incomplete_rate": {
+          "$ref": "#/$defs/RatioReport"
+        },
+        "boundary": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Boundary",
+          "type": "object"
+        },
+        "exposure_coverage": {
+          "$ref": "#/$defs/RatioReport"
+        },
+        "inconclusive_rate": {
+          "$ref": "#/$defs/RatioReport"
+        },
+        "no_exposure_rate": {
+          "$ref": "#/$defs/RatioReport"
+        },
+        "utility_rate": {
+          "$ref": "#/$defs/RatioReport"
+        },
+        "violation_rate": {
+          "$ref": "#/$defs/RatioReport"
+        }
+      },
+      "required": [
+        "attempts",
+        "adversarial",
+        "benign",
+        "boundary",
+        "exposure_coverage",
+        "violation_rate",
+        "utility_rate",
+        "benign_incomplete_rate",
+        "inconclusive_rate",
+        "no_exposure_rate"
+      ],
+      "title": "SummaryReport",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/BhuwanJoshi-01/agentfence-lab/schemas/report.v1.schema.json",
+  "additionalProperties": false,
+  "description": "Root of ``report.json``.",
+  "properties": {
+    "agent": {
+      "$ref": "#/$defs/AgentReport"
+    },
+    "disclaimer": {
+      "default": "Scenario coverage is limited and does not certify agent security. Mock results test the AgentFence pipeline, not any real coding agent.",
+      "title": "Disclaimer",
+      "type": "string"
+    },
+    "ended_at": {
+      "format": "date-time",
+      "title": "Ended At",
+      "type": "string"
+    },
+    "isolation": {
+      "$ref": "#/$defs/IsolationReport"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionReport",
+      "default": {
+        "enabled": true,
+        "file_contents_included": false,
+        "raw_transcript_included": false
+      }
+    },
+    "repeat": {
+      "title": "Repeat",
+      "type": "integer"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/AttemptReport"
+      },
+      "title": "Results",
+      "type": "array"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scenario_profile": {
+      "title": "Scenario Profile",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/SummaryReport"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "tool_version",
+    "started_at",
+    "ended_at",
+    "scenario_profile",
+    "seed",
+    "repeat",
+    "agent",
+    "isolation",
+    "summary",
+    "results"
+  ],
+  "title": "AgentFence Lab suite report v1",
+  "type": "object"
+}
