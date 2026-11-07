@@ -184,9 +184,9 @@ belongs to the task named.
    `legitimate_task.description` reject Unicode control and invisible formatting characters
    (`DisplayText`), and `scenarios list` / `scenarios validate` pass titles and file names
    through `scrub_text` before printing. Covered by `test_terminal_injection.py`.
-3. **Event detail path check is narrow.** Detail strings are rejected only when they start with
-   `/home/`, `/Users/` or `/root/`. Other absolute paths, for example under `/tmp` or `/etc`,
-   pass. Event targets are strict aliases. Details are not.
+3. **Resolved (#87): event details reject any host path.** `looks_like_host_path()` refuses
+   absolute POSIX, `~`, Windows drive and UNC paths, `file:` URIs and text that embeds a
+   well-known host directory. Covered by `test_events.py::test_details_reject_any_host_path`.
 4. **Source trust is a label, not a proof.** `source.trust` is set by whoever builds the event.
    Nothing yet ties a `host_observed` label to a host-side collector. That depends on collectors
    writing through a channel the agent cannot write (docs/02 section 2; AF-0403, AF-0406).
