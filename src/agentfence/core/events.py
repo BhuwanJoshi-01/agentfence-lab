@@ -25,6 +25,7 @@ from typing import Annotated, Any, Final, Self
 
 from pydantic import AfterValidator, AwareDatetime, Field, model_validator
 
+from agentfence.core.trust import effective_trust
 from agentfence.core.types import StrictModel
 from agentfence.core.vocabulary import SCHEMA_VERSIONS, EventKind, SourceTrust
 
@@ -162,8 +163,13 @@ class EventBody(StrictModel):
         return self
 
     @property
+    def effective_trust(self) -> SourceTrust:
+        """Claimed trust checked against the collector registry (``core/trust.py``)."""
+        return effective_trust(self.source.component, self.source.trust)
+
+    @property
     def authoritative_for_access(self) -> bool:
-        return self.source.trust.authoritative_for_access
+        return self.effective_trust.authoritative_for_access
 
     def body(self) -> dict[str, Any]:
         """Canonical JSON-mode content used to derive the event ID."""
