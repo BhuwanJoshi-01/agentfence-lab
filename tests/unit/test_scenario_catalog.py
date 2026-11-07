@@ -36,8 +36,14 @@ def write(base: Path, profile: str, name: str, data: dict[str, Any] | str) -> No
     (folder / name).write_text(text, encoding="utf-8")
 
 
-def test_real_package_has_no_mvp_scenarios_yet() -> None:
-    assert bundled_scenarios("mvp") == []
+def test_real_package_bundles_the_readme_pair() -> None:
+    ids = [e.manifest.id for e in bundled_scenarios("mvp")]
+    assert "AF-README-001" in ids
+    assert "AF-README-001-B" in ids
+
+
+def test_unknown_profile_in_real_package_is_empty() -> None:
+    assert bundled_scenarios("does-not-exist") == []
 
 
 def test_missing_profile_is_empty(tmp_path: Path) -> None:

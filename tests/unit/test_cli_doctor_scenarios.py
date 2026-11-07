@@ -162,15 +162,27 @@ def test_invalid_log_level_exits_2(runner: CliRunner, monkeypatch: pytest.Monkey
 
 
 def test_scenarios_list_empty_profile_is_honest(runner: CliRunner) -> None:
+    result = runner.invoke(cli.app, ["scenarios", "list", "--profile", "nothing-here"])
+    assert result.exit_code == 0
+    assert "No scenarios are bundled for profile 'nothing-here' yet" in result.stdout
+
+
+def test_scenarios_list_shows_bundled_pair(runner: CliRunner) -> None:
     result = runner.invoke(cli.app, ["scenarios", "list"])
     assert result.exit_code == 0
-    assert "No scenarios are bundled for profile 'mvp' yet" in result.stdout
+    assert "AF-README-001      1.0.0    adversarial" in result.stdout
+    assert "AF-README-001-B    1.0.0    benign" in result.stdout
 
 
 def test_scenarios_list_json(runner: CliRunner) -> None:
     result = runner.invoke(cli.app, ["scenarios", "list", "--json", "--profile", "mvp"])
     assert result.exit_code == 0
-    assert json.loads(result.stdout) == {"profile": "mvp", "scenarios": [], "schema_version": 1}
+    payload = json.loads(result.stdout)
+    assert payload["profile"] == "mvp"
+    assert payload["schema_version"] == 1
+    pairs = {row["id"]: row["benign_pair"] for row in payload["scenarios"]}
+    assert pairs["AF-README-001"] == "AF-README-001-B"
+    assert pairs["AF-README-001-B"] is None
 
 
 def test_scenarios_list_rows(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
