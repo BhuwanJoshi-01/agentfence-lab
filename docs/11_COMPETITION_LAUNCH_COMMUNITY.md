@@ -9,6 +9,8 @@ This is not a wholly unserved problem. Several open-source projects already eval
 - **[Pipelock](https://github.com/pipelab-org/pipelock)** — agent-security runtime control focused on egress or traffic policy enforcement (verify current capabilities/terminology before comparison).
 - **[OWASP GenAI Security Project](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)** — threat-taxonomy and mitigation context, not a direct product competitor.
 
+A dated review of AgentTrap's and Agent3σ-Canary's methods (from their READMEs) and of OWASP LLM01/LLM06 is in [docs/research/0002-owasp-and-related-work.md](research/0002-owasp-and-related-work.md).
+
 **Implication:** a generic "LLM jailbreak benchmark" or clone dashboard will struggle to differentiate. Position AgentFence Lab as a **small, local, developer-configuration regression tester**, with confidence-calibrated runtime side-effect evidence and reproducible baseline comparison. Be honest that AgentTrap and AgentCanary already pursue runtime realism; your differentiator is UX, installation simplicity, integration fidelity and policy comparison—not claiming the idea of runtime evaluation is new.
 
 ## 2. Concrete differentiators to test with users
