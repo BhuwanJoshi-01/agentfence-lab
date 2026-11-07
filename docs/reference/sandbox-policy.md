@@ -41,6 +41,28 @@ rootful engine, so it cannot verify them (ADR-011).
 therefore stops the launch rather than dropping a control. The test that proves this is
 `test_sandbox_policy.py::test_a_builder_bug_becomes_a_refusal`.
 
+## Labels and stale resources
+
+Every container and workspace volume carries `io.agentfence.run` and
+`io.agentfence.attempt` labels: `build_run_argv` adds them to `run`, and
+`build_volume_create_argv` to `volume create`. A `finally` block cannot run after
+`SIGKILL` or a crash, so `runtime/reconcile.py` finds leftovers by label (AF-0207):
+
+- `list_labelled` asks the engine to filter by the run label, then checks every record
+  again. The run label must be well formed, a container ID hexadecimal and a volume name
+  `agentfence-` prefixed. Anything else is ignored, never removed.
+- `plan_stale` keeps the active run's resources. `remove_stale` force-removes containers
+  first, then volumes, through the process supervisor, and reports failures instead of
+  raising.
+
+The Docker listing commands were checked against Docker 29.9.2. Podman's output shape is
+taken from its documentation and both shapes are accepted, until a rootless runner
+confirms it. Nothing calls reconciliation yet: no container is created until the runner
+exists (AF-0205), which is where it will run before each suite and from
+`agentfence cleanup`. Tests: `test_reconcile.py::test_records_that_are_not_clearly_ours_are_ignored`,
+`test_reconcile.py::test_the_active_run_is_never_stale_and_containers_go_first`,
+`test_reconcile.py::test_a_forged_resource_is_never_passed_to_the_engine`.
+
 ## Open points for AF-0205 and AF-0206
 
 - **Workspace volume.** The fixture is copied into an engine-managed volume, never

@@ -187,6 +187,18 @@ def audit_run_options(options: Sequence[str], engine: Engine) -> list[str]:
     return problems
 
 
+def build_volume_create_argv(engine: Engine, policy: IsolationPolicy) -> tuple[str, ...]:
+    """``volume create`` arguments for the attempt's workspace, carrying the run labels.
+
+    The labels let :mod:`agentfence.runtime.reconcile` find the volume if the run that
+    created it never finished. ``engine`` is accepted for symmetry: both engines take the
+    same arguments.
+    """
+    del engine
+    labels = [f"--label={key}={value}" for key, value in sorted(policy.labels.items())]
+    return ("volume", "create", *labels, policy.workspace_volume)
+
+
 def build_run_argv(
     engine: Engine, policy: IsolationPolicy, command: Sequence[str]
 ) -> tuple[str, ...]:

@@ -40,6 +40,8 @@ from agentfence.core.types import LockedFalse, LockedTrue, StrictModel
 WORKSPACE_PATH: Final = "/workspace"
 TMP_PATH: Final = "/tmp"  # noqa: S108 - the container's own /tmp, a size-limited tmpfs
 LABEL_PREFIX: Final = "io.agentfence"
+RUN_LABEL: Final = f"{LABEL_PREFIX}.run"
+ATTEMPT_LABEL: Final = f"{LABEL_PREFIX}.attempt"
 VOLUME_PREFIX: Final = "agentfence-"
 
 _IMAGE = re.compile(r"^[a-z0-9][a-z0-9._/:-]{0,254}@sha256:[0-9a-f]{64}$")
@@ -98,4 +100,4 @@ class IsolationPolicy(StrictModel):
 
     @property
     def labels(self) -> dict[str, str]:
-        return {f"{LABEL_PREFIX}.run": self.run_id, f"{LABEL_PREFIX}.attempt": self.attempt_id}
+        return {RUN_LABEL: self.run_id, ATTEMPT_LABEL: self.attempt_id}
