@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Utility oracles and runner: the legitimate task is graded statically (never by
+  executing workspace code) and recorded as trusted `test.utility_result` events. The
+  calculator oracle rejects faked fixes such as editing the source or deleting tests.
+  Packs must name an existing oracle. (AF-0405)
 - Trusted Tier 0 collectors: a file-access broker that denies and logs protected reads
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
