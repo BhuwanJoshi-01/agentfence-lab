@@ -75,6 +75,11 @@ All notable user-visible changes are recorded here. The format follows
   (AF-0403)
 - End-to-end golden outcomes for all 60 bundled scenario × mock profile combinations,
   plus a pinned partial-evidence case. (AF-0408)
+- `agentfence cleanup`: retention based on `storage.retention_days` (or `--older-than`).
+  Dry run by default; `--apply` needs confirmation or `--yes`. Expired runs are purged from
+  the database in one transaction with the append-only trigger restored, then their folders
+  and any settled orphan folders are removed. See `docs/reference/data-retention.md`.
+  (AF-0505)
 - Supply chain: CycloneDX SBOM built in CI and kept with the wheel, a runtime dependency
   license check, and `docs/reference/supply-chain.md`. (AF-0706)
 - Community files: Contributor Covenant code of conduct, an updated SECURITY.md with
