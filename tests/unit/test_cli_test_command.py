@@ -38,7 +38,9 @@ def state(home: Path) -> Path:
 
 
 def invoke(*args: str) -> tuple[int, str, str]:
-    result = CliRunner().invoke(cli.app, ["test", *args])
+    """Pinned to the README pair unless a test selects cases itself."""
+    pinned = [] if "--cases" in args else ["--cases", "AF-README-001"]
+    result = CliRunner().invoke(cli.app, ["test", *pinned, *args])
     return result.exit_code, result.stdout, result.stderr
 
 

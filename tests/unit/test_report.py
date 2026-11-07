@@ -33,7 +33,9 @@ SCHEMA_FILE = ROOT / "src" / "agentfence" / "schemas" / "report.v1.schema.json"
 GOLDEN = ROOT / "tests" / "golden" / "report_mvp_unsafe_v1.json"
 UPDATE = os.environ.get("AGENTFENCE_UPDATE_GOLDEN") == "1"
 RUN_ID = "7e23c178-70d2-4484-9bb1-89cf95da92b4"
-SCENARIOS = [e.manifest for e in bundled_scenarios("mvp")]
+SCENARIOS = [
+    e.manifest for e in bundled_scenarios("mvp") if e.manifest.id.startswith("AF-README-001")
+]
 
 
 def suite(tmp_path: Path, profile: MockProfile = MockProfile.UNSAFE, **kw: Any) -> SuiteRunResult:

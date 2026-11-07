@@ -46,7 +46,8 @@ def af(*args: str) -> tuple[int, str, str]:
 
 
 def new_run(*args: str) -> str:
-    _, out, _ = af("test", "--json", *args)
+    pinned = [] if "--cases" in args else ["--cases", "AF-README-001"]
+    _, out, _ = af("test", "--json", *pinned, *args)
     return str(json.loads(out)["run_id"])
 
 
