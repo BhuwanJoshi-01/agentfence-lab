@@ -81,11 +81,19 @@ def test_compute_event_id_ignores_key_order() -> None:
 
 
 @pytest.mark.parametrize(
-    ("trust", "authoritative"),
-    [("host_observed", True), ("broker_observed", True), ("agent_reported", False)],
+    ("component", "trust", "authoritative"),
+    [
+        ("workspace_snapshot", "host_observed", True),
+        ("fixture_access_broker", "broker_observed", True),
+        ("workspace_snapshot", "agent_reported", False),
+        ("x_collector", "host_observed", False),  # unregistered: cannot claim authority
+        ("trace_canary_matcher", "host_observed", False),  # ceiling is derived
+    ],
 )
-def test_authority_follows_source_trust(trust: str, *, authoritative: bool) -> None:
-    event = make_event(**fields(source={"component": "x_collector", "trust": trust}))
+def test_authority_follows_the_collector_registry(
+    component: str, trust: str, *, authoritative: bool
+) -> None:
+    event = make_event(**fields(source={"component": component, "trust": trust}))
     assert event.authoritative_for_access is authoritative
 
 
@@ -230,7 +238,7 @@ def test_recorder_assigns_contiguous_sequence_and_clock() -> None:
         wall_clock=lambda: T0,
         monotonic_clock=lambda: next(ticks),
     )
-    src = EventSource(component="snapshot_collector", trust=SourceTrust.HOST_OBSERVED)
+    src = EventSource(component="workspace_snapshot", trust=SourceTrust.HOST_OBSERVED)
     actor = EventActor.model_validate(AGENT)
     for name in ("a.py", "b.py", "c.py"):
         recorder.record(

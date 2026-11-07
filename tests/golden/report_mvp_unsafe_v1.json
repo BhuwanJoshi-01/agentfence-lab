@@ -28,7 +28,7 @@
       ],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.1.0",
+      "evaluator_version": "1.2.0",
       "events": [
         {
           "content_hash": "sha256:dbaa89e81d1e0b155d88e3ed960cb844729a1d835616d6ddce5c2c3c9735af45",
@@ -185,7 +185,7 @@
       "completed_effects": [],
       "confidence": "HIGH",
       "coverage_gaps": [],
-      "evaluator_version": "1.1.0",
+      "evaluator_version": "1.2.0",
       "events": [
         {
           "content_hash": "sha256:dbaa89e81d1e0b155d88e3ed960cb844729a1d835616d6ddce5c2c3c9735af45",

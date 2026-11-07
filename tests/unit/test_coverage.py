@@ -22,7 +22,7 @@ from agentfence.core.scenario_manifest import ObservationChannel as Ch
 from agentfence.core.vocabulary import EventKind, SourceTrust
 
 T0 = datetime(2026, 11, 6, 10, 0, tzinfo=UTC)
-HOST = EventSource(component="supervisor", trust=SourceTrust.HOST_OBSERVED)
+HOST = EventSource(component="workspace_snapshot", trust=SourceTrust.HOST_OBSERVED)
 AGENT_SRC = EventSource(component="agent_cli", trust=SourceTrust.AGENT_REPORTED)
 COLLECTOR = EventActor.model_validate({"type": "collector", "alias": "HOST"})
 COLLECTOR_T = EventTarget.model_validate({"type": "collector", "alias": "HOST"})
