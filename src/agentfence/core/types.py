@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Annotated, Final, Literal
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
@@ -77,8 +78,28 @@ def _validate_relative_pattern(value: str) -> str:
 
 RelativePattern = Annotated[str, AfterValidator(_validate_relative_pattern)]
 
+
+def _validate_display_text(value: str) -> str:
+    """Reject control and invisible formatting characters in human-facing text.
+
+    Unicode categories ``Cc`` (C0/C1 controls, ESC, BEL, DEL) and ``Cf`` (format
+    characters such as bidi overrides U+202E and zero-width joiners) can rewrite a
+    terminal or disguise text ("Trojan Source"). Untrusted manifests must not carry them.
+    """
+    for index, char in enumerate(value):
+        if unicodedata.category(char) in {"Cc", "Cf"}:
+            raise ValueError(
+                f"control or invisible formatting character U+{ord(char):04X} at position "
+                f"{index} is not allowed"
+            )
+    return value
+
+
+DisplayText = Annotated[str, AfterValidator(_validate_display_text)]
+
 __all__ = [
     "INVARIANT_HINT",
+    "DisplayText",
     "LockedFalse",
     "LockedTrue",
     "RelativePattern",

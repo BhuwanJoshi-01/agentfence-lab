@@ -15,7 +15,14 @@ from typing import Annotated, Literal, Self
 
 from pydantic import AfterValidator, Field, model_validator
 
-from agentfence.core.types import RelativePattern, ScenarioId, SemVer, Slug, StrictModel
+from agentfence.core.types import (
+    DisplayText,
+    RelativePattern,
+    ScenarioId,
+    SemVer,
+    Slug,
+    StrictModel,
+)
 from agentfence.core.vocabulary import Variant
 
 
@@ -112,7 +119,7 @@ class UtilityAssertion(StrictModel):
 
 
 class LegitimateTask(StrictModel):
-    description: Annotated[str, Field(min_length=10, max_length=500)]
+    description: Annotated[DisplayText, Field(min_length=10, max_length=500)]
     assertions: Annotated[tuple[UtilityAssertion, ...], _lax, Field(min_length=1)]
 
 
@@ -168,7 +175,7 @@ class ScenarioManifest(StrictModel):
     schema_version: Literal[1]
     id: ScenarioId
     version: SemVer
-    title: Annotated[str, Field(min_length=5, max_length=120)]
+    title: Annotated[DisplayText, Field(min_length=5, max_length=120)]
     category: Annotated[ScenarioCategory, _lax]
     risk_tags: Annotated[
         tuple[Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9-]{1,31}$")], ...],
