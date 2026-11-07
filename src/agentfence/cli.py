@@ -13,6 +13,8 @@ import hashlib
 import json
 import os
 import platform
+import sys
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
@@ -50,7 +52,11 @@ from agentfence.reporting.export import (
 )
 from agentfence.reporting.html_report import render_html
 from agentfence.reporting.json_report import SuiteReport, build_report, report_json
-from agentfence.runtime.cleanup import reconcile_stale_workspaces
+from agentfence.runtime.cleanup import (
+    apply_retention,
+    plan_retention,
+    reconcile_stale_workspaces,
+)
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.runtime.suite import SuiteRunResult, run_suite
 from agentfence.scenarios import CatalogError, bundled_scenarios
@@ -632,6 +638,81 @@ def runs_compare(
     typer.echo("")
     typer.echo(", ".join(f"{c.value.lower()}={result.count(c)}" for c in Change))
     raise typer.Exit(int(code))
+
+
+@app.command("cleanup")
+def cleanup_command(
+    older_than: Annotated[
+        int | None,
+        typer.Option("--older-than", min=0, help="Days to keep (default: storage.retention_days)."),
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="List what would be deleted (the default).")
+    ] = False,
+    apply: Annotated[
+        bool, typer.Option("--apply", help="Actually delete. Without it this is a dry run.")
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Do not ask for confirmation.")] = False,
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
+    ] = None,
+) -> None:
+    """Delete saved runs older than the retention period. Dry run by default.
+
+    Removes database rows (in one transaction) and the matching run folders, plus run
+    folders over an hour old that have no database record. Nothing outside the AgentFence
+    state directory is touched, and stale workspaces are reconciled too.
+    """
+    if dry_run and apply:
+        _fail("--dry-run and --apply cannot be combined", ExitCode.USAGE_ERROR)
+    days = (
+        older_than if older_than is not None else _load_config(config).config.storage.retention_days
+    )
+    try:
+        paths = resolve_paths()
+    except PathConfigError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    if not paths.database_path.exists():
+        typer.echo("No runs recorded; nothing to clean.")
+        return
+    try:
+        store = RunStore(paths.database_path)
+    except (StoreError, PermissionError) as exc:
+        _fail(str(exc), ExitCode.INFRA_FAILURE)
+    with store:
+        plan = plan_retention(paths.runs_dir, store, older_than_days=days, now=datetime.now(UTC))
+        verb = "Deleting" if apply else "Would delete"
+        typer.echo(
+            f"{verb} {len(plan.expired_runs)} run(s) started before "
+            f"{plan.cutoff.isoformat(timespec='seconds')} ({days} days) and "
+            f"{len(plan.orphan_run_dirs)} orphaned run folder(s)."
+        )
+        for run_id in plan.expired_runs:
+            typer.echo(f"  run     {run_id}")
+        for run_id in plan.orphan_run_dirs:
+            typer.echo(f"  orphan  {run_id}")
+        if not apply:
+            typer.echo("Dry run: nothing was deleted. Re-run with --apply to delete.")
+            return
+        if not (plan.expired_runs or plan.orphan_run_dirs):
+            return
+        if not yes:
+            if not sys.stdin.isatty():
+                _fail("refusing to delete without confirmation; pass --yes", ExitCode.USAGE_ERROR)
+            if not typer.confirm("Delete these permanently?", default=False):
+                typer.echo("Nothing was deleted.")
+                return
+        try:
+            apply_retention(plan, paths.runs_dir, store)
+        except (StoreError, OSError) as exc:
+            _fail(str(exc), ExitCode.INFRA_FAILURE)
+    stale = reconcile_stale_workspaces(paths.state_dir / "work")
+    typer.echo(
+        f"Deleted {len(plan.expired_runs)} run(s), {len(plan.orphan_run_dirs)} orphaned "
+        f"folder(s) and {len(stale.removed)} stale workspace(s)."
+    )
+    typer.echo("Copies in backups or filesystem snapshots outside AgentFence are not affected.")
 
 
 class ReportFormat(StrEnum):

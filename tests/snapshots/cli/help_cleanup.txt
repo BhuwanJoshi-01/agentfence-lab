@@ -1,0 +1,17 @@
+Usage: agentfence cleanup [OPTIONS]
+
+  Delete saved runs older than the retention period. Dry run by default.
+
+  Removes database rows (in one transaction) and the matching run folders, plus
+  run folders over an hour old that have no database record. Nothing outside the
+  AgentFence state directory is touched, and stale workspaces are reconciled
+  too.
+
+Options:
+  --older-than <int range>  Days to keep (default: storage.retention_days).
+                            [x>=0]
+  --dry-run                 List what would be deleted (the default).
+  --apply                   Actually delete. Without it this is a dry run.
+  --yes                     Do not ask for confirmation.
+  --config <path>           Project config file (default: ./agentfence.yaml).
+  --help                    Show this message and exit.
