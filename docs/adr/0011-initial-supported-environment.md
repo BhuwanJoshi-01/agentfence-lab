@@ -130,3 +130,17 @@ section 5). None of these are implemented:
   status to accepted, and use the pinned distro image for AF-0701 (clean install on a documented
   distro).
 - Hosted CI never counts as a supported isolation host, whatever its runtime reports.
+
+## Update 2026-11-07: rootless Podman on the dev box
+
+The maintainer installed the distro-packaged Podman on the dev box (`apt install podman
+uidmap passt crun fuse-overlayfs`). Observed with AppArmor's user-namespace restriction left
+**on**: Ubuntu 26.04, kernel 7.0.0-42, Podman 5.7.0, crun 1.21, netavark with pasta, the
+overlay storage driver, cgroup v2 with the systemd manager, and `cpu`, `memory` and `pids`
+delegated. `podman info` reports `rootless: true` and seccomp enabled. `agentfence doctor`
+now passes every required check (isolation state `OFFLINE_SAFE`).
+
+This is one machine, not Spike A's dedicated runner, so the version table above stays
+"to be confirmed". It does mean the container work in AF-0205, AF-0206 and AF-0208 can be
+verified against a real rootless engine.
+

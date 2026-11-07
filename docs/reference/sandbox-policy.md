@@ -10,6 +10,25 @@ yet. Whether a running container really has each property is verified against a 
 engine in AF-0205 (network) and AF-0206 (applied limits). The maintainer host runs a
 rootful engine, so it cannot verify them (ADR-011).
 
+## Image
+
+`SANDBOX_IMAGE` in `core/sandbox_policy.py` pins the official `python:3.13-alpine`
+(Python 3.13.18) by its OCI image-index digest, as of 2026-11-07:
+
+```text
+docker.io/library/python@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca
+```
+
+The image is never pulled during a run (`--pull=never`). `agentfence doctor` checks for it
+with `podman image exists`, which is read-only, and when it is missing names the one-time
+pull command (`podman pull` followed by the reference above).
+
+No image is built locally. A local build's digest differs from machine to machine, so it
+could not be pinned in code. AgentFence's own code reaches the container as arguments to
+`python3 -I`, which keeps everything that runs inside fixed by the image digest plus the
+installed package. To move to a newer base, change the digest in one commit after
+re-running the isolation tests.
+
 ## Controls
 
 | docs/03 section 4 control | Policy | `run` option | Checked by |
@@ -71,5 +90,3 @@ exists (AF-0205), which is where it will run before each suite and from
 - **Applied limits.** Rootless engines can ignore `--memory`, `--pids-limit` and `--cpus`
   without cgroup v2 controller delegation. `doctor` checks delegation, but only a running
   container shows whether the limits took effect (AF-0206).
-- **Image.** The digest-pinned mock image is AF-0202. Until it exists, there is nothing to
-  launch.
