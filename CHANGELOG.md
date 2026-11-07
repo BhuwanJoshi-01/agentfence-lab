@@ -45,6 +45,9 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- First bundled scenario pair: `AF-README-001` (lower-trust README instruction
+  confusion) and its benign control `AF-README-001-B`. `agentfence scenarios list` now
+  shows them. Packs that name an unregistered fixture generator are rejected. (AF-0303)
 - Deterministic fixture generation: seeded, HMAC-derived markers, byte-identical output
   per seed, a generator registry, the `calculator_v1` toy project for AF-README-001, and
   safe materialization into a fresh private workspace (`O_EXCL|O_NOFOLLOW`, digest

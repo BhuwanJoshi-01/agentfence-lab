@@ -52,7 +52,7 @@ python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e '.[dev]'     # or: uv sync --extra dev
 agentfence version --json
 agentfence doctor            # read-only host check; exits 3 until rootless verification lands (AF-0201)
-agentfence scenarios list    # empty until the MVP scenarios land in M3
+agentfence scenarios list    # the bundled scenarios (AF-README-001 and its benign control so far)
 pytest -q
 ```
 
