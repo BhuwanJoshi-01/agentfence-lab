@@ -158,6 +158,13 @@ All notable user-visible changes are recorded here. The format follows
 - Credential-free CI on GitHub Actions: lint, unit tests on Python 3.12/3.13, wheel
   build with content check and clean-install smoke test, dependency audit. (AF-0104)
 
+### Changed
+
+- README rewritten for what exists today: a quickstart checked from a fresh clone, real
+  output from a failing mock run, a screenshot of the HTML report, how verdicts work,
+  what AgentFence touches, its limitations, and related projects in their own words. A
+  test keeps every `agentfence` command shown in the README real. (AF-0703)
+
 ### Fixed
 
 - `scenarios validate` (and the bundled catalog) now rejects adversarial scenarios that
