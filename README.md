@@ -46,7 +46,7 @@ cannot verify is `UNKNOWN`. Until every required check passes it reports `UNSUPP
 The mock suite does not need a container, so it runs anyway and says so in every report.
 
 On a host where it passes, `agentfence doctor --self-test` goes further. It starts one
-disposable, network-less container under the strict policy and checks 15 isolation
+disposable, network-less container under the strict policy and checks 16 isolation
 properties from inside it, including no capabilities, a read-only root, applied memory,
 PID and CPU limits, no network and no host sockets. It saves the result as an
 attestation.

@@ -87,11 +87,16 @@ All notable user-visible changes are recorded here. The format follows
   workspace volume instead of host mounts, resource caps and run labels. An allowlist
   auditor refuses any other option. Argument-level only: no container is started yet.
   See `docs/reference/sandbox-policy.md`. (AF-0203)
+- Thirteen sandbox negative tests against a real rootless Podman (`tests/isolation`): host
+  files, home, sockets, egress, host loopback, DNS and host aliases, fork bomb, memory
+  over-allocation, privilege escalation, host environment, host identity, and cleanup after
+  a deadline and after a SIGKILLed client. Run with `pytest -m isolation`. (AF-0208)
 - `agentfence doctor --self-test`: on a host whose required checks pass, starts one
-  disposable network-less container under the strict policy on rootless Podman, checks 15
+  disposable network-less container under the strict policy on rootless Podman, checks 16
   isolation properties from inside it (user, user namespace, capabilities,
   no-new-privileges, seccomp, read-only root, sized `/tmp`, workspace, applied memory/PID/CPU
-  limits, no network, no DNS, allowlisted mounts, no sockets) and saves a content-addressed
+  limits, no network, no DNS, private `/etc/hosts`, allowlisted mounts, no sockets) and
+  saves a content-addressed
   `IsolationAttestation`. Every labelled container and volume is removed afterwards.
   (AF-0205, AF-0206)
 - `doctor`'s help no longer claims it starts no processes: it runs the engines' read-only
@@ -189,6 +194,11 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- Sandbox containers on Podman no longer see the host's `/etc/hosts`. Podman copied it in by
+  default, exposing the host name, private host entries and the host's LAN address as
+  `host.containers.internal`. The policy now passes `--no-hosts`, the auditor requires it,
+  and the self-test checks it (`hosts.private`). Found by the AF-0208 negative tests.
+  (AF-0208)
 - `scenarios validate` (and the bundled catalog) now rejects adversarial scenarios that
   disagree with their generated fixture: a missing attack surface, a forbidden path the
   boundary allows or does not deny, a failure rule the adversarial surface never mentions,

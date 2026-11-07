@@ -8,7 +8,7 @@ independent allowlist auditor (`audit_run_options`) before anything can use them
 **Status:** the arguments are audited, and `agentfence doctor --self-test` checks the
 result from inside a running container on rootless Podman. It records an attestation (see
 [Self-test](#self-test)). On the maintainer host (rootless Podman 5.7.0, crun 1.21), all
-15 checks pass. The mock agent itself still runs in-process: no scenario is executed in a
+16 checks pass. The mock agent itself still runs in-process: no scenario is executed in a
 container yet.
 
 ## Image
@@ -40,6 +40,7 @@ re-running the isolation tests.
 | 2. No host PID, IPC, network or user namespace | no field for them | none emitted; `--pid`, `--ipc`, `--userns` are refused | `test_sandbox_policy.py::test_auditor_refuses_every_weakening` |
 | 3. Read-only root, ephemeral size-limited `/tmp` and work dir | `read_only_root` locked true, `tmp_size_mb`, `workspace_volume` | `--read-only`, `--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=Nm`, `--mount=type=volume,...,target=/workspace`; Podman also `--read-only-tmpfs=false` | `test_sandbox_policy.py::test_every_mandatory_control_is_on_the_command_line` |
 | 4, 5. No host sockets, home, devices or bind mounts | `host_mounts` locked false; the workspace is an engine-managed volume named `agentfence-...`, never a host path | no `-v`/`--volume`, no `type=bind`, no `--device` | `test_sandbox_policy.py::test_no_host_path_socket_or_privilege_appears_anywhere` |
+| Host identity stays out (found by AF-0208) | Podman only | `--no-hosts`: without it, Podman copies the host's `/etc/hosts` in (host name, private entries, host LAN address as `host.containers.internal`) | `test_sandbox_policy.py::test_podman_specific_defaults_are_turned_off`, `tests/isolation/test_sandbox_negative.py` |
 | 6. Seccomp, `no-new-privileges` | `no_new_privileges` locked true; the engine's default seccomp profile is kept | `--security-opt=no-new-privileges`; every other `--security-opt` value is refused | `test_sandbox_policy.py::test_auditor_refuses_every_weakening` |
 | 7. Memory, PID and CPU caps | `limits` (`ResourceLimits`) | `--memory`, `--memory-swap` (equal: no swap), `--pids-limit`, `--cpus` | `test_sandbox_policy.py::test_argv_shape_and_limits_follow_the_policy` |
 | 8. No external network in Tier 0 | `network` is `"none"` only | `--network=none` | `test_sandbox_policy.py::test_no_weakening_validates` |
@@ -111,6 +112,7 @@ pass. Limits are checked as *applied* (cgroup files and a fork test), not as req
 | `cpu.limit` | `cpu.max` matches the CPU quota |
 | `network.none` | the only interface is `lo`; a public IP, the metadata address and the host gateway are unreachable |
 | `dns.blocked` | name resolution fails |
+| `hosts.private` | `/etc/hosts` holds only loopback entries and `host.containers.internal` does not resolve |
 | `mounts.allowlisted` | every mount is engine-managed (`/dev`, `/proc`, `/sys`, `/etc/hosts`, ...), `/tmp` or `/workspace` |
 | `sockets.absent` | no socket file is reachable, including the Docker, Podman, D-Bus and X11 paths |
 
@@ -119,6 +121,11 @@ the checks with expected and observed values. Its ID is the SHA-256 of its conte
 edited file no longer verifies. It is saved to `<state>/attestations/<id>.json` (`0600`).
 `doctor` exits 0 only when every check passes, 3 when one fails or the self-test could not
 start, and 4 when the container could not be set up.
+
+`tests/isolation/test_sandbox_negative.py` (AF-0208) attacks the same container from the
+other side with 13 bounded attempts: host files, home, sockets, egress, host loopback, DNS
+and host aliases, a fork bomb, memory over-allocation, privilege escalation, host
+environment, host identity, and cleanup after a deadline and after a SIGKILLed client.
 
 Tests: `test_sandbox_selftest.py::test_each_weakening_fails_its_check`,
 `test_sandbox_selftest.py::test_missing_evidence_is_unknown_not_pass`,
