@@ -20,8 +20,9 @@ import typer
 
 from agentfence import __version__
 from agentfence.adapters.mock import MockProfile
-from agentfence.core.comparisons import Change, compare_runs
+from agentfence.core.comparisons import Change, RunComparison, compare_runs
 from agentfence.core.config import (
+    AgentFenceConfig,
     ConfigError,
     ConfigLayer,
     ConfigSource,
@@ -47,9 +48,9 @@ from agentfence.reporting.export import (
     write_export,
 )
 from agentfence.reporting.html_report import render_html
-from agentfence.reporting.json_report import build_report, report_json
+from agentfence.reporting.json_report import SuiteReport, build_report, report_json
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
-from agentfence.runtime.suite import run_suite
+from agentfence.runtime.suite import SuiteRunResult, run_suite
 from agentfence.scenarios import CatalogError, bundled_scenarios
 from agentfence.scenarios.loader import PackError, load_pack
 from agentfence.storage.atomic import atomic_write_text
@@ -353,6 +354,68 @@ def _select_cases(profile: str, include: tuple[str, ...]) -> list[ScenarioManife
     return [by_id[sid] for sid in sorted(chosen)]
 
 
+def _cli_overrides(
+    agent: str | None,
+    agent_profile: str | None,
+    profile: str | None,
+    repeat: int | None,
+    cases: str | None,
+) -> dict[str, Any]:
+    """Map 'test' options onto the CLI config layer (highest precedence)."""
+    overrides: dict[str, Any] = {}
+    if agent is not None:
+        overrides.setdefault("agent", {})["kind"] = agent
+    if agent_profile is not None:
+        overrides.setdefault("agent", {})["profile"] = agent_profile
+    if profile is not None:
+        overrides.setdefault("scenarios", {})["profile"] = profile
+    if repeat is not None:
+        overrides.setdefault("scenarios", {})["repeat"] = repeat
+    if cases is not None:
+        overrides.setdefault("scenarios", {})["include"] = [
+            c.strip() for c in cases.split(",") if c.strip()
+        ]
+    return overrides
+
+
+def _run_and_save(
+    selected: list[ScenarioManifest], mock_profile: MockProfile, cfg: AgentFenceConfig, seed: int
+) -> tuple[SuiteRunResult, SuiteReport, str, Path]:
+    """Run the suite, write report.json (0600) and record the run in the store."""
+    try:
+        paths = resolve_paths()
+        ensure_private_dir(paths.state_dir)
+        suite = run_suite(
+            selected,
+            mock_profile,
+            scenario_profile=cfg.scenarios.profile,
+            seed=seed,
+            repeat=cfg.scenarios.repeat,
+            workdir=paths.state_dir / "work",
+        )
+        report = build_report(suite)
+        text = report_json(report)
+        run_dir = ensure_private_dir(paths.run_dir(suite.run_id))
+        report_path = atomic_write_text(run_dir / "report.json", text)
+        with open_store(paths.state_dir) as store:
+            store.save_suite(suite, report_sha256=hashlib.sha256(text.encode()).hexdigest())
+    except (PathConfigError, PermissionError, StoreError) as exc:
+        _fail(str(exc), ExitCode.INFRA_FAILURE)
+    return suite, report, text, report_path
+
+
+def _print_baseline(comparison: RunComparison) -> None:
+    counts = ", ".join(f"{c.value.lower()}={comparison.count(c)}" for c in Change)
+    typer.echo(f"Compared with baseline {comparison.baseline_run}: {counts}")
+    for pair in comparison.pairs:
+        if pair.change in {Change.REGRESSED, Change.INCOMPARABLE}:
+            typer.echo(
+                f"  {pair.change.value:<12} {pair.scenario_id} #{pair.repetition}: "
+                f"{pair.baseline} -> {pair.candidate}"
+                + (f" ({'; '.join(pair.reasons)})" if pair.reasons else "")
+            )
+
+
 @app.command("test")
 def test_command(
     agent: Annotated[
@@ -381,6 +444,10 @@ def test_command(
         Path | None,
         typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
     ] = None,
+    baseline: Annotated[
+        str | None,
+        typer.Option("--baseline", help="Saved run ID to compare against after this run."),
+    ] = None,
     json_output: JsonFlag = False,
 ) -> None:
     """Run scenarios with the offline mock adapter and save the report.
@@ -389,19 +456,7 @@ def test_command(
     SQLite store. Never calls a model, never uses the network, never runs workspace code.
     Exit codes as listed in 'agentfence --help'.
     """
-    overrides: dict[str, Any] = {}
-    if agent is not None:
-        overrides.setdefault("agent", {})["kind"] = agent
-    if agent_profile is not None:
-        overrides.setdefault("agent", {})["profile"] = agent_profile
-    if profile is not None:
-        overrides.setdefault("scenarios", {})["profile"] = profile
-    if repeat is not None:
-        overrides.setdefault("scenarios", {})["repeat"] = repeat
-    if cases is not None:
-        overrides.setdefault("scenarios", {})["include"] = [
-            c.strip() for c in cases.split(",") if c.strip()
-        ]
+    overrides = _cli_overrides(agent, agent_profile, profile, repeat, cases)
     resolved = _load_config(config, cli_overrides=overrides)
     cfg = resolved.config
     if cfg.agent.kind != "mock":
@@ -419,27 +474,9 @@ def test_command(
             ExitCode.USAGE_ERROR,
         )
     selected = _select_cases(cfg.scenarios.profile, cfg.scenarios.include)
+    baseline_report = _verified(baseline).report if baseline is not None else None
 
-    try:
-        paths = resolve_paths()
-        ensure_private_dir(paths.state_dir)
-        suite = run_suite(
-            selected,
-            mock_profile,
-            scenario_profile=cfg.scenarios.profile,
-            seed=seed,
-            repeat=cfg.scenarios.repeat,
-            workdir=paths.state_dir / "work",
-        )
-        report = build_report(suite)
-        text = report_json(report)
-        run_dir = ensure_private_dir(paths.run_dir(suite.run_id))
-        report_path = atomic_write_text(run_dir / "report.json", text)
-        with open_store(paths.state_dir) as store:
-            store.save_suite(suite, report_sha256=hashlib.sha256(text.encode()).hexdigest())
-    except (PathConfigError, PermissionError, StoreError) as exc:
-        _fail(str(exc), ExitCode.INFRA_FAILURE)
-
+    suite, report, text, report_path = _run_and_save(selected, mock_profile, cfg, seed)
     boundaries = [r.verdict.boundary for r in suite.attempts]
     infra_failed = any(
         r.verdict.infrastructure is not InfrastructureOutcome.OK for r in suite.attempts
@@ -450,12 +487,17 @@ def test_command(
         boundaries=boundaries,
         strict=strict or cfg.evaluation.fail_on_inconclusive,
     )
+    comparison = compare_runs(baseline_report, report) if baseline_report else None
+    if comparison is not None and comparison.has_regressions and code is ExitCode.SUCCESS:
+        code = ExitCode.BOUNDARY_FAIL
     log.info("run saved", extra={"fields": {"run_id": suite.run_id, "exit_code": int(code)}})
     if json_output:
         typer.echo(text, nl=False)
-    else:
-        location = scrub_text(str(report_path), home=os.environ.get("HOME"))
-        typer.echo(render_summary(report, report_location=location), nl=False)
+        raise typer.Exit(int(code))
+    location = scrub_text(str(report_path), home=os.environ.get("HOME"))
+    typer.echo(render_summary(report, report_location=location), nl=False)
+    if comparison is not None:
+        _print_baseline(comparison)
     raise typer.Exit(int(code))
 
 

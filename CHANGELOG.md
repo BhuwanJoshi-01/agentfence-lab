@@ -73,6 +73,8 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- `agentfence test --baseline <run-id>`: compares the new run with a verified baseline
+  and exits 1 on any regression. (AF-0504)
 - `agentfence runs compare <baseline> <candidate> [--json]`: per-scenario REGRESSED /
   IMPROVED / CHANGED / UNCHANGED, and INCOMPARABLE with reasons when scenario version,
   evaluator, fixture, isolation tier or agent differ. Exits 1 on regressions. (AF-0504)

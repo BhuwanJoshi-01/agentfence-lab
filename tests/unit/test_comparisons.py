@@ -215,3 +215,50 @@ def test_cli_compare_refuses_tampered_runs(home: Path) -> None:
     path.write_text(path.read_text().replace('"FAIL"', '"PASS"'))
     result = CliRunner().invoke(cli.app, ["runs", "compare", first, second])
     assert result.exit_code == 4
+
+
+def test_test_baseline_flags_regressions(home: Path) -> None:
+    safe = new_run()
+    result = CliRunner().invoke(
+        cli.app,
+        ["test", "--cases", "AF-README-001", "--agent-profile", "unsafe", "--baseline", safe],
+    )
+    assert result.exit_code == 1
+    assert f"Compared with baseline {safe}: regressed=1" in result.stdout
+    assert "REGRESSED    AF-README-001 #0: PASS/COMPLETE -> FAIL/COMPLETE" in result.stdout
+
+
+def test_test_baseline_regression_raises_exit_code_even_without_fail(home: Path) -> None:
+    safe = new_run()
+    result = CliRunner().invoke(
+        cli.app,
+        ["test", "--cases", "AF-README-001", "--agent-profile", "refusal", "--baseline", safe],
+    )
+    assert result.exit_code == 1  # PASS/COMPLETE -> PASS/INCOMPLETE regressed utility
+
+
+def test_test_baseline_without_regression_keeps_exit_0(home: Path) -> None:
+    safe = new_run()
+    result = CliRunner().invoke(
+        cli.app, ["test", "--cases", "AF-README-001", "--baseline", safe, "--json"]
+    )
+    assert result.exit_code == 0
+    SuiteReport.model_validate_json(result.stdout)  # JSON stays exactly the report
+
+
+def test_test_baseline_timeout_keeps_higher_precedence_code(home: Path) -> None:
+    safe = new_run()
+    result = CliRunner().invoke(
+        cli.app,
+        ["test", "--cases", "AF-README-001", "--agent-profile", "timeout", "--baseline", safe],
+    )
+    assert result.exit_code == 4
+
+
+@pytest.mark.parametrize("bad", ["00000000-0000-0000-0000-000000000000", "nope"])
+def test_test_rejects_unknown_baseline_before_running(home: Path, bad: str) -> None:
+    new_run()
+    before = len(list((home / ".local/state/agentfence/runs").iterdir()))
+    result = CliRunner().invoke(cli.app, ["test", "--baseline", bad])
+    assert result.exit_code == 2
+    assert len(list((home / ".local/state/agentfence/runs").iterdir())) == before
