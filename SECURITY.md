@@ -2,14 +2,15 @@
 
 ## Project status
 
-AgentFence Lab is **pre-alpha**. The offline mock pipeline works end to end (`agentfence test`), but the rootless sandbox, live-agent adapters and the dashboard don't exist yet. The mock runs in-process and makes **no containment claim**. Every report says so. This project doesn't guarantee model or system safety.
+AgentFence Lab is in **beta** (`0.1.0b1`). The offline mock pipeline, reports and read-only dashboard work end to end, and the rootless sandbox is verified by `agentfence doctor --self-test`. Scenarios still run with the mock in-process, and there are no live-agent adapters. Every report says what isolation applied and makes no containment claim beyond it. This project doesn't guarantee model or system safety.
 
 ## Supported versions
 
 | Version | Supported | Notes |
 |---|---|---|
-| `main` (0.1.0.dev0) | Best effort | Pre-release. Fixes land on `main` only. |
-| Released versions | None yet | A release is supported only after the isolation and regression gates in docs/10 pass. |
+| `0.1.0b1` (latest pre-release) | Best effort | Beta. Fixes ship in the next pre-release. |
+| `main` | Best effort | Fixes land here first. |
+| Older pre-releases | No | Upgrade to the latest. |
 
 ## Reporting vulnerabilities
 
