@@ -106,6 +106,18 @@ jobs:
           python3 -m venv /tmp/smoke
           /tmp/smoke/bin/pip install --quiet dist/*.whl
           /tmp/smoke/bin/agentfence version --json | python3 -c 'import json,sys; print(json.load(sys.stdin))'
+      - name: Software bill of materials (CycloneDX 1.5, runtime dependencies)
+        run: |
+          uv export --no-dev --format cyclonedx1.5 -o sbom.cdx.json
+          python3 -c 'import json; d=json.load(open("sbom.cdx.json")); assert d["bomFormat"] == "CycloneDX" and d["components"]; print(len(d["components"]), "components")'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wheel-and-sbom
+          path: |
+            dist/
+            sbom.cdx.json
+          retention-days: 14
+          if-no-files-found: error
       - name: Bundled scenarios ship in the wheel and validate after install
         run: |
           grep -q 'agentfence/scenarios/mvp/AF-README-001.yaml' wheel-contents.txt
