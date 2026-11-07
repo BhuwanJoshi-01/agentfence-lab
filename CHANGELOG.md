@@ -87,6 +87,11 @@ All notable user-visible changes are recorded here. The format follows
   workspace volume instead of host mounts, resource caps and run labels. An allowlist
   auditor refuses any other option. Argument-level only: no container is started yet.
   See `docs/reference/sandbox-policy.md`. (AF-0203)
+- Stale container and volume reconciliation by run label (`runtime/reconcile.py`):
+  workspace volumes are created with the run labels, leftovers from runs that never
+  finished are listed, checked again client-side and force-removed (containers first).
+  Not wired into a command yet, since no container is created before the runner exists.
+  (AF-0207)
 - Preflight secret scan: `report` and `runs show` check the exact output for synthetic
   markers, private keys and credential shapes before printing or writing it, and refuse
   (exit 4) with the kind and line of each finding, never the value. (#119)
