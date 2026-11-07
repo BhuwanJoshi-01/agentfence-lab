@@ -9,6 +9,9 @@ export function EnvironmentPage() {
   return (
     <>
       <PageTitle title="Environment">Environment and isolation</PageTitle>
+      {result.state === "loading" && (
+        <p className="muted">Asking the container engines for their own reports; this can take a few seconds.</p>
+      )}
       <Pending result={result}>
         {(env) => (
           <>

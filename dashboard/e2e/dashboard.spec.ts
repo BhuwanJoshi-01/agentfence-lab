@@ -88,11 +88,13 @@ test("compare: regressions per scenario, and nothing claimed for one run", async
 });
 
 test("scenario catalog, environment and about", async ({ page }) => {
+  test.setTimeout(120_000);
   await page.goto(`${base()}/#/scenarios`);
   await expect(page.locator("article.card")).toHaveCount(10);
   await axe(page);
   await page.goto(`${base()}/#/environment`);
-  await expect(page.getByRole("heading", { name: "Host checks" })).toBeVisible();
+  // The route runs the container engines' own info queries (each bounded at 15 s).
+  await expect(page.getByRole("heading", { name: "Host checks" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("heading", { name: "Latest container self-test" })).toBeVisible();
   await axe(page);
   await page.goto(`${base()}/#/about`);
