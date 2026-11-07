@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from enum import StrEnum
@@ -74,6 +75,24 @@ Alias = Annotated[str, AfterValidator(_validate_alias)]
 
 DetailValue = str | int | bool | None
 
+_WINDOWS_DRIVE: Final = re.compile(r"^[A-Za-z]:[\\/]")
+_EMBEDDED_HOST_DIR: Final = re.compile(
+    r"(?:^|[\s=:'\"(,])/(?:home|Users|root|etc|var|tmp|opt|usr|srv|mnt|media|proc|sys|dev|run"
+    r"|private|Volumes|nix|snap)(?:/|$)"
+)
+
+
+def looks_like_host_path(value: str) -> bool:
+    """True for absolute POSIX/Windows/UNC paths, ``~`` paths, ``file:`` URIs, or text that
+    embeds a well-known host directory. Evidence must carry aliases, never host layout."""
+    stripped = value.strip()
+    return (
+        stripped.startswith(("/", "~", "\\\\"))
+        or _WINDOWS_DRIVE.match(stripped) is not None
+        or "file:" in stripped.lower()
+        or _EMBEDDED_HOST_DIR.search(stripped) is not None
+    )
+
 
 def _validate_details(value: Mapping[str, DetailValue]) -> Mapping[str, DetailValue]:
     if len(value) > MAX_DETAIL_KEYS:
@@ -84,8 +103,11 @@ def _validate_details(value: Mapping[str, DetailValue]) -> Mapping[str, DetailVa
         if isinstance(item, str):
             if len(item) > MAX_DETAIL_CHARS:
                 raise ValueError(f"detail {key!r} exceeds {MAX_DETAIL_CHARS} characters")
-            if item.startswith(("/home/", "/Users/", "/root/")):
-                raise ValueError(f"detail {key!r} looks like a raw host path; use an alias")
+            if looks_like_host_path(item):
+                raise ValueError(
+                    f"detail {key!r} looks like a raw host path; use an alias such as "
+                    "WORKSPACE/..., SYNTHETIC_SECRET or MOCK_SINK"
+                )
     return value
 
 
