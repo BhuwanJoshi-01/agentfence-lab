@@ -29,6 +29,18 @@ from agentfence.runtime.suite import SuiteRunResult
 from agentfence.storage.paths import ensure_private_dir, verify_private_file
 
 MIN_SQLITE: Final = (3, 37, 0)  # STRICT tables
+_PURGE_STATEMENTS: Final = (
+    "DELETE FROM evidence_links WHERE attempt_id IN "
+    "(SELECT id FROM attempts WHERE suite_run_id = ?)",
+    "DELETE FROM verdicts WHERE attempt_id IN (SELECT id FROM attempts WHERE suite_run_id = ?)",
+    "DELETE FROM events WHERE attempt_id IN (SELECT id FROM attempts WHERE suite_run_id = ?)",
+    "DELETE FROM attempts WHERE suite_run_id = ?",
+    "DELETE FROM suite_runs WHERE id = ?",
+)
+EVENTS_NO_DELETE_TRIGGER: Final = (
+    "CREATE TRIGGER events_no_delete BEFORE DELETE ON events\n"
+    "BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;"
+)
 GENESIS: Final = "0" * 64
 
 
@@ -311,6 +323,37 @@ class RunStore:
             "SELECT payload_json FROM events WHERE attempt_id=? ORDER BY seq", (attempt_id,)
         ).fetchall()
         return [ObservedEvent.model_validate_json(row[0]) for row in rows]
+
+    def runs_started_before(self, cutoff_iso: str) -> list[RunSummary]:
+        """Runs whose start time is earlier than ``cutoff_iso`` (ISO-8601, UTC)."""
+        rows = self._conn.execute(
+            "SELECT * FROM suite_runs WHERE started_at < ? ORDER BY started_at, id",
+            (cutoff_iso,),
+        ).fetchall()
+        return [self._summary(row) for row in rows]
+
+    def all_run_ids(self) -> set[str]:
+        return {str(row[0]) for row in self._conn.execute("SELECT id FROM suite_runs")}
+
+    def purge_runs(self, run_ids: list[str]) -> int:
+        """Retention purge: the only operation allowed to delete evidence.
+
+        Runs in one transaction: the append-only delete trigger on ``events`` is dropped,
+        the runs' rows are deleted child-first, and the trigger is recreated before
+        commit. If anything fails, everything (trigger included) rolls back.
+        """
+        if not run_ids:
+            return 0
+        try:
+            with self._transaction() as conn:
+                conn.execute("DROP TRIGGER events_no_delete")
+                for run_id in run_ids:
+                    for statement in _PURGE_STATEMENTS:
+                        conn.execute(statement, (run_id,))
+                conn.execute(EVENTS_NO_DELETE_TRIGGER)
+        except sqlite3.Error as exc:
+            raise StoreError(f"retention purge failed and was rolled back: {exc}") from exc
+        return len(run_ids)
 
     def verify_run(self, run_id: str) -> list[str]:
         """Recompute payload hashes, the per-attempt chain and every event ID."""
