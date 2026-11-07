@@ -68,6 +68,10 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- Untrusted manifest titles, task descriptions and pack file names can no longer inject
+  terminal escape sequences or bidi/zero-width characters into CLI output: the schema
+  rejects them and human output is scrubbed. (#86)
+
 - Group-writable config files are accepted when the group is the user's private group
   (Debian/Ubuntu `umask 0002`); shared-group and world-writable files are still
   refused. (AF-0102)
