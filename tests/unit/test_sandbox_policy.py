@@ -177,8 +177,9 @@ def test_every_mandatory_control_is_on_the_command_line(engine: Engine) -> None:
 
 
 def test_podman_specific_defaults_are_turned_off() -> None:
-    assert {"--http-proxy=false", "--read-only-tmpfs=false"} <= set(options("podman"))
-    assert not {o.split("=")[0] for o in options("docker")} & {"--http-proxy", "--read-only-tmpfs"}
+    assert {"--http-proxy=false", "--read-only-tmpfs=false", "--no-hosts"} <= set(options("podman"))
+    docker = {o.split("=")[0] for o in options("docker")}
+    assert not docker & {"--http-proxy", "--read-only-tmpfs", "--no-hosts"}
 
 
 @pytest.mark.parametrize("engine", ENGINES)
@@ -289,6 +290,9 @@ def test_auditor_refuses_podman_proxy_and_tmpfs_defaults() -> None:
     ]
     assert tampered("podman", "--read-only-tmpfs=false", "--read-only-tmpfs=true")
     assert tampered("docker", None, "--http-proxy=false")
+    assert tampered("podman", "--no-hosts", None) == ["mandatory option --no-hosts is missing"]
+    assert "option --no-hosts is Podman-only" in tampered("docker", None, "--no-hosts")
+    assert tampered("podman", "--no-hosts", "--no-hosts=false")
 
 
 def test_auditor_refuses_space_separated_and_duplicate_options() -> None:

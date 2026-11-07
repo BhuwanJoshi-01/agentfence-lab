@@ -16,6 +16,9 @@ Engine differences handled here:
 * Podman's ``--read-only`` adds writable tmpfs mounts on ``/run``, ``/tmp`` and
   ``/var/tmp`` unless ``--read-only-tmpfs=false``; the policy wants only its own
   size-limited ``/tmp``.
+* Podman copies the host's ``/etc/hosts`` into the container (host name, private host
+  entries, and the host's address as ``host.containers.internal``) unless ``--no-hosts``.
+  Found by the AF-0208 negative tests; the self-test checks it (``hosts.private``).
 
 Nothing here starts a container. Whether a running container really has these
 properties is verified against a rootless engine in AF-0205 and AF-0206.
@@ -44,6 +47,7 @@ _ALLOWED: Final = frozenset(
         "--read-only",
         "--read-only-tmpfs",
         "--http-proxy",
+        "--no-hosts",
         "--cap-drop",
         "--security-opt",
         "--network",
@@ -76,8 +80,9 @@ _REQUIRED: Final = (
     "--tmpfs",
     "--mount",
 )
-_PODMAN_REQUIRED: Final = ("--http-proxy", "--read-only-tmpfs")
-_FLAGS_WITHOUT_VALUE: Final = frozenset({"--rm", "--read-only"})
+_PODMAN_REQUIRED: Final = ("--http-proxy", "--read-only-tmpfs", "--no-hosts")
+_PODMAN_ONLY: Final = frozenset(_PODMAN_REQUIRED)
+_FLAGS_WITHOUT_VALUE: Final = frozenset({"--rm", "--read-only", "--no-hosts"})
 _POSITIVE_INT: Final = re.compile(r"^[1-9][0-9]{0,9}$")
 _MEMORY: Final = re.compile(r"^[1-9][0-9]{0,6}m$")
 _CPUS: Final = re.compile(r"^(?:0|[1-9][0-9]?)(?:\.[0-9]{1,3})?$")
@@ -118,7 +123,7 @@ def _run_options(engine: Engine, policy: IsolationPolicy) -> list[str]:
         f"--mount=type=volume,source={policy.workspace_volume},target={WORKSPACE_PATH}",
     ]
     if engine == "podman":
-        options += ["--http-proxy=false", "--read-only-tmpfs=false"]
+        options += ["--http-proxy=false", "--read-only-tmpfs=false", "--no-hosts"]
     options += [f"--label={key}={value}" for key, value in sorted(policy.labels.items())]
     options += [f"--env={name}={value}" for name, value in sorted(policy.env.items())]
     return options
@@ -172,6 +177,8 @@ def audit_run_options(options: Sequence[str], engine: Engine) -> list[str]:
         seen.setdefault(name, []).append(value)
         if has_value and (problem := _check_value(name, value, engine)):
             problems.append(problem)
+    if engine == "docker":
+        problems.extend(f"option {name} is Podman-only" for name in _PODMAN_ONLY if name in seen)
     required = _REQUIRED + (_PODMAN_REQUIRED if engine == "podman" else ())
     problems.extend(f"mandatory option {name} is missing" for name in required if name not in seen)
     for name, values in seen.items():
