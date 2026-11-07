@@ -1,16 +1,14 @@
-"""Read-only host facts for ``agentfence doctor`` (AF-0102).
+"""Read-only host facts for ``agentfence doctor`` (AF-0102, AF-0201).
 
 Gathering facts (:func:`gather_host_facts`) is separated from judging them
 (:func:`assess_host`), so judgement is pure and fully unit-testable.
 
-This milestone checks prerequisites only. Rootless runtime *verification*, cgroup
-controller delegation, seccomp, user namespaces and LSM checks are AF-0201. Until those
-exist, ``runtime.rootless`` is reported ``UNKNOWN`` and the isolation state is
-``UNSUPPORTED``. The fail-closed outcome is intentional: an unverified host must never
-look ready.
-
-Nothing here writes files, starts processes, contacts a container daemon or uses the
-network.
+Facts: platform, Python, euid, executables on PATH, cgroup v2, controllers delegated to
+the user's systemd slice, user-namespace limits, AppArmor's unprivileged-userns switch,
+and each container engine's own report of rootless mode and seccomp
+(:mod:`agentfence.runtime.engine_probe`). Engine queries are bounded, read-only
+subprocesses; nothing is written, pulled or started. Anything that cannot be read is
+``UNKNOWN``, which never counts as a pass.
 """
 
 from __future__ import annotations
@@ -26,12 +24,26 @@ from typing import Final
 from agentfence.core.capabilities import CapabilityCheck, HostCapabilities
 from agentfence.core.redaction import scrub_text
 from agentfence.core.vocabulary import CheckStatus
+from agentfence.runtime.engine_probe import (
+    EngineFacts,
+    EngineName,
+    Runner,
+    query_engine,
+    run_bounded,
+)
 
 MIN_PYTHON: Final = (3, 12)
 SUPPORTED_ARCHES: Final = frozenset({"x86_64", "amd64"})
-CONTAINER_RUNTIMES: Final = ("podman", "docker")
+CONTAINER_RUNTIMES: Final[tuple[EngineName, ...]] = ("podman", "docker")
 OPTIONAL_TOOLS: Final = ("git",)
 CGROUP2_MARKER: Final = Path("/sys/fs/cgroup/cgroup.controllers")
+REQUIRED_CONTROLLERS: Final = frozenset({"cpu", "memory", "pids"})
+USERNS_MAX: Final = Path("/proc/sys/user/max_user_namespaces")
+APPARMOR_USERNS: Final = Path("/proc/sys/kernel/apparmor_restrict_unprivileged_userns")
+
+
+def delegated_controllers_path(uid: int) -> Path:
+    return Path(f"/sys/fs/cgroup/user.slice/user-{uid}.slice/user@{uid}.service/cgroup.controllers")
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,12 +55,25 @@ class HostFacts:
     executables: Mapping[str, str | None] = field(default_factory=dict)
     cgroup2: bool | None = None
     home: str | None = None
+    engines: tuple[EngineFacts, ...] = ()
+    delegated_controllers: frozenset[str] | None = None
+    userns_max: int | None = None
+    apparmor_userns_restricted: bool | None = None
+
+
+def _read(path: Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
 def gather_host_facts(
     *,
     which: Callable[[str], str | None] = shutil.which,
     cgroup_marker: Path = CGROUP2_MARKER,
+    run: Runner = run_bounded,
+    read: Callable[[Path], str | None] = _read,
 ) -> HostFacts:
     """Collect facts without side effects. Missing information becomes ``None``."""
     try:
@@ -56,14 +81,28 @@ def gather_host_facts(
     except OSError:
         cgroup2 = None
     major, minor, micro = (int(part) for part in platform.python_version_tuple()[:3])
+    executables = {name: which(name) for name in (*CONTAINER_RUNTIMES, *OPTIONAL_TOOLS)}
+    engines = tuple(
+        query_engine(name, path, run)
+        for name, path in ((n, executables.get(n)) for n in CONTAINER_RUNTIMES)
+        if path is not None
+    )
+    uid = os.getuid()
+    controllers = read(delegated_controllers_path(uid))
+    userns = read(USERNS_MAX)
+    apparmor = read(APPARMOR_USERNS)
     return HostFacts(
         system=platform.system().lower(),
         machine=platform.machine().lower(),
         python_version=(major, minor, micro),
         euid=os.geteuid(),
-        executables={name: which(name) for name in (*CONTAINER_RUNTIMES, *OPTIONAL_TOOLS)},
+        executables=executables,
         cgroup2=cgroup2,
         home=os.environ.get("HOME"),
+        engines=engines,
+        delegated_controllers=frozenset(controllers.split()) if controllers is not None else None,
+        userns_max=int(userns) if userns is not None and userns.isdigit() else None,
+        apparmor_userns_restricted=(apparmor == "1") if apparmor in {"0", "1"} else None,
     )
 
 
@@ -85,6 +124,91 @@ def _check(  # noqa: PLR0913 - keyword-only check builder
         detail=detail,
         remedy="" if status is CheckStatus.PASS else remedy,
     )
+
+
+def _describe(engine: EngineFacts) -> str:
+    return f"{engine.name} {engine.version or '(unknown version)'}"
+
+
+def _engine_checks(facts: HostFacts) -> list[CapabilityCheck]:
+    queried = [e for e in facts.engines if e.reachable and e.problem is None]
+    rootless = [e for e in queried if e.rootless]
+    chosen = rootless[0] if rootless else (queried[0] if queried else None)
+    problems = ", ".join(f"{e.name}: {e.problem}" for e in facts.engines if e.problem)
+    if rootless:
+        rootless_ok: bool | None = True
+        summary = f"{_describe(rootless[0])} reports rootless mode"
+    elif queried:
+        rootless_ok = False
+        summary = "engine reports a rootful daemon: " + ", ".join(_describe(e) for e in queried)
+    else:
+        rootless_ok = None
+        summary = "no container engine could be queried"
+    controllers = facts.delegated_controllers
+    missing = sorted(REQUIRED_CONTROLLERS - controllers) if controllers is not None else []
+    restricted = facts.apparmor_userns_restricted
+    return [
+        _check(
+            "runtime.rootless",
+            ok=rootless_ok,
+            required=True,
+            summary=summary,
+            detail=problems,
+            remedy=(
+                "Use rootless Podman (recommended) or rootless Docker. A rootful engine is "
+                "never used for sandbox runs (ADR-011)."
+            ),
+        ),
+        _check(
+            "runtime.seccomp",
+            ok=None if chosen is None else chosen.seccomp,
+            required=True,
+            summary=(
+                "no engine to check"
+                if chosen is None
+                else f"{chosen.name} seccomp {'enabled' if chosen.seccomp else 'not reported'}"
+            ),
+            remedy="Enable the engine's default seccomp profile; never disable it.",
+        ),
+        _check(
+            "cgroup.delegation",
+            ok=None if controllers is None else not missing,
+            required=True,
+            summary=(
+                "cannot read the user slice's delegated controllers"
+                if controllers is None
+                else "cpu, memory and pids delegated to your user"
+                if not missing
+                else f"controllers not delegated to your user: {', '.join(missing)}"
+            ),
+            remedy="Delegate cpu, memory and pids via systemd so resource limits are enforced.",
+        ),
+        _check(
+            "userns.available",
+            ok=None if facts.userns_max is None else facts.userns_max > 0,
+            required=True,
+            summary=(
+                "cannot read user.max_user_namespaces"
+                if facts.userns_max is None
+                else f"user.max_user_namespaces = {facts.userns_max}"
+            ),
+            remedy="Rootless engines need user namespaces; set user.max_user_namespaces > 0.",
+        ),
+        _check(
+            "apparmor.userns",
+            ok=None if restricted in (None, True) else True,
+            required=False,
+            summary=(
+                "AppArmor does not restrict unprivileged user namespaces"
+                if restricted is False
+                else "AppArmor restricts unprivileged user namespaces; rootless engines need "
+                "their AppArmor profile"
+                if restricted
+                else "AppArmor user-namespace setting not present"
+            ),
+            remedy="Use a distro-packaged rootless engine that ships its AppArmor profile.",
+        ),
+    ]
 
 
 def assess_host(facts: HostFacts) -> HostCapabilities:
@@ -144,14 +268,7 @@ def assess_host(facts: HostFacts) -> HostCapabilities:
             }[facts.cgroup2],
             remedy="Boot with the unified cgroup v2 hierarchy so resource limits are enforced.",
         ),
-        _check(
-            "runtime.rootless",
-            ok=None,
-            required=True,
-            summary="rootless isolation not yet verified",
-            detail="Runtime verification lands in AF-0201. Until then, sandbox runs are refused.",
-            remedy="Nothing to do yet. This check stays UNKNOWN until verification exists.",
-        ),
+        *_engine_checks(facts),
         _check(
             "tool.git",
             ok=git_path is not None,
