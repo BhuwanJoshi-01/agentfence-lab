@@ -79,9 +79,17 @@ def run_container(  # noqa: PLR0913 - explicit, keyword-only knobs
     timeout: float,
     run: Runner = run_bounded,
     supervise_fn: Supervise = supervise,
+    volume_ready: bool = False,
 ) -> ProcessResult:
-    """Run ``command`` in one strict-policy container; always clean up the run's resources."""
-    if run([executable, *build_volume_create_argv("podman", policy)]).returncode != 0:
+    """Run ``command`` in one strict-policy container; always clean up the run's resources.
+
+    ``volume_ready`` means the caller already created (and filled) the labelled workspace
+    volume, for example to place fixture files or watches before the agent starts.
+    """
+    created = volume_ready or (
+        run([executable, *build_volume_create_argv("podman", policy)]).returncode == 0
+    )
+    if not created:
         raise SandboxError(f"could not create workspace volume {policy.workspace_volume}")
     try:
         return supervise_fn(
