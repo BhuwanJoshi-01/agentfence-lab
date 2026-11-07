@@ -180,12 +180,10 @@ belongs to the task named.
    or `docker` binary is on `PATH`. Hosts come out `UNSUPPORTED` today only because
    `runtime.rootless` is always `UNKNOWN`. AF-0201 must make a rootful engine a `FAIL`. See
    ADR-011.
-2. **Some human-readable CLI output is not scrubbed.** `scenarios list` prints manifest
-   `title` values as they are. The schema bounds a title's length but not its characters, so a
-   title could carry terminal escape sequences. `scenarios validate` prints each valid file's
-   path relative to the pack root without `scrub_text`, so a crafted file name could do the
-   same. Problem messages are scrubbed, and `--json` output escapes control characters. Today
-   the bundled catalog is empty, but `scenarios validate` already reads user-supplied packs.
+2. **Resolved (#86): human-readable CLI output is now scrubbed.** Manifest `title` and
+   `legitimate_task.description` reject Unicode control and invisible formatting characters
+   (`DisplayText`), and `scenarios list` / `scenarios validate` pass titles and file names
+   through `scrub_text` before printing. Covered by `test_terminal_injection.py`.
 3. **Event detail path check is narrow.** Detail strings are rejected only when they start with
    `/home/`, `/Users/` or `/root/`. Other absolute paths, for example under `/tmp` or `/etc`,
    pass. Event targets are strict aliases. Details are not.
