@@ -2,15 +2,24 @@
 
 ## Project status
 
-AgentFence Lab is currently represented by a **development blueprint**, not a deployed security tool. Any future code releases must state supported versions/platforms and their known limits. This project does not guarantee model or system safety.
+AgentFence Lab is **pre-alpha**. The offline mock pipeline works end to end (`agentfence test`), but the rootless sandbox, live-agent adapters and the dashboard don't exist yet. The mock runs in-process and makes **no containment claim**. Every report says so. This project doesn't guarantee model or system safety.
 
 ## Supported versions
 
-No code versions released yet. Once published, maintain a version support matrix in this file. Only designate a release supported after the isolation and regression test gates pass.
+| Version | Supported | Notes |
+|---|---|---|
+| `main` (0.1.0.dev0) | Best effort | Pre-release. Fixes land on `main` only. |
+| Released versions | None yet | A release is supported only after the isolation and regression gates in docs/10 pass. |
 
 ## Reporting vulnerabilities
 
-**Do not publish exploit details in a public issue before maintainers have a chance to assess impact.** Use GitHub private vulnerability reporting for the eventual repository, if enabled, or a security contact published by repository maintainers. No email address is provided here because none has been designated. Include affected commit/release, sanitized steps to reproduce, affected boundary, evidence, and possible remediation.
+**Do not publish exploit details in a public issue.** Report privately through GitHub's private vulnerability reporting:
+
+> https://github.com/BhuwanJoshi-01/agentfence-lab/security/advisories/new
+
+Include the affected commit or version, sanitized steps to reproduce, the affected trust boundary (docs/reference/trust-boundaries.md), evidence (run IDs, event IDs), and possible remediation if you have one. This is a volunteer project without a formal response-time commitment. Reports are acknowledged as soon as the maintainer can, and you'll be told if a fix will take a while.
+
+Especially welcome: a verdict that can be produced without trusted evidence, a way for scenario content to escape the workspace or execute, ways to make an export pass verification after tampering, and redaction gaps.
 
 Please do not include real keys, private data or third-party victim details. If you discover a vulnerability in a vendor agent, coordinate with that vendor through its published security disclosure channel.
 
