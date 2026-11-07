@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Ctrl-C during `agentfence test` exits 130 with nothing saved, and the next run removes
+  workspaces left behind by a killed run (symlink-safe, UUID-named entries only).
+  (AF-0407)
 - `agentfence test --baseline <run-id>`: compares the new run with a verified baseline
   and exits 1 on any regression. (AF-0504)
 - `agentfence runs compare <baseline> <candidate> [--json]`: per-scenario REGRESSED /

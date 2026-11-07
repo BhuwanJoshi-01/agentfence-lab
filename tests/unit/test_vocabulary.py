@@ -90,6 +90,7 @@ def test_exit_codes_match_docs_06() -> None:
         "INFRA_FAILURE": 4,
         "STRICT_INCONCLUSIVE": 5,
         "UNSUPPORTED": 6,
+        "CANCELLED": 130,
     }
 
 
