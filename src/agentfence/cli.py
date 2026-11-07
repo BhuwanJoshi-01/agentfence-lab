@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import platform
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
@@ -37,6 +38,13 @@ from agentfence.core.vocabulary import (
 )
 from agentfence.log import LogConfigError, configure_logging, get_logger
 from agentfence.reporting.console import render_summary
+from agentfence.reporting.export import (
+    ExportError,
+    VerifiedReport,
+    load_verified_report,
+    reproduction_notes,
+    write_export,
+)
 from agentfence.reporting.json_report import build_report, report_json
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
 from agentfence.runtime.suite import run_suite
@@ -44,8 +52,13 @@ from agentfence.scenarios import CatalogError, bundled_scenarios
 from agentfence.scenarios.loader import PackError, load_pack
 from agentfence.storage.atomic import atomic_write_text
 from agentfence.storage.config_discovery import discover_config_layers
-from agentfence.storage.db import StoreError, open_store
-from agentfence.storage.paths import PathConfigError, ensure_private_dir, resolve_paths
+from agentfence.storage.db import RunStore, StoreError, as_dict, open_store
+from agentfence.storage.paths import (
+    AppPaths,
+    PathConfigError,
+    ensure_private_dir,
+    resolve_paths,
+)
 
 DISTRIBUTION_NAME = "agentfence-lab"
 log = get_logger("cli")
@@ -80,6 +93,12 @@ scenarios_app = typer.Typer(
     rich_markup_mode=None,
 )
 app.add_typer(scenarios_app, name="scenarios")
+runs_app = typer.Typer(
+    help="Inspect saved runs. Read-only.",
+    no_args_is_help=True,
+    rich_markup_mode=None,
+)
+app.add_typer(runs_app, name="runs")
 
 JsonFlag = Annotated[bool, typer.Option("--json", help="Emit exactly one JSON document on stdout.")]
 
@@ -436,6 +455,106 @@ def test_command(
         location = scrub_text(str(report_path), home=os.environ.get("HOME"))
         typer.echo(render_summary(report, report_location=location), nl=False)
     raise typer.Exit(int(code))
+
+
+def _open_existing_store() -> tuple[AppPaths, RunStore]:
+    try:
+        paths = resolve_paths()
+    except PathConfigError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    if not paths.database_path.exists():
+        _fail("no runs recorded yet; start one with 'agentfence test'", ExitCode.USAGE_ERROR)
+    try:
+        return paths, RunStore(paths.database_path)
+    except (StoreError, PermissionError) as exc:
+        _fail(str(exc), ExitCode.INFRA_FAILURE)
+
+
+@runs_app.command("list")
+def runs_list(
+    limit: Annotated[int, typer.Option("--limit", min=1, max=200, help="Rows to show.")] = 20,
+    json_output: JsonFlag = False,
+) -> None:
+    """List saved runs, newest first. Read-only."""
+    _, store = _open_existing_store()
+    with store:
+        rows = [as_dict(r) for r in store.list_runs(limit)]
+    if json_output:
+        _emit_json({"schema_version": SCHEMA_VERSIONS["report"], "runs": rows})
+        return
+    for row in rows:
+        counts = row["boundary"]
+        typer.echo(
+            f"{row['run_id']}  {row['started_at'][:19]}  mock-{row['agent_profile']:<13} "
+            f"attempts={row['attempts']:<3} pass={counts.get('PASS', 0)} "
+            f"fail={counts.get('FAIL', 0)} inconclusive={counts.get('INCONCLUSIVE', 0)} "
+            f"not-triggered={counts.get('NOT_TRIGGERED', 0)}"
+        )
+
+
+def _verified(run_id: str) -> VerifiedReport:
+    paths, store = _open_existing_store()
+    try:
+        with store:
+            return load_verified_report(paths, store, run_id)
+    except PathConfigError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    except ExportError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR if exc.not_found else ExitCode.INFRA_FAILURE)
+
+
+@runs_app.command("show")
+def runs_show(
+    run_id: Annotated[str, typer.Argument(help="Run ID from 'agentfence runs list'.")],
+    json_output: JsonFlag = False,
+) -> None:
+    """Show a saved run after verifying its report and evidence. Read-only."""
+    verified = _verified(run_id)
+    if json_output:
+        typer.echo(verified.text, nl=False)
+        return
+    typer.echo(render_summary(verified.report), nl=False)
+    typer.echo("Integrity: report hash and evidence hash chain verified")
+    for line in reproduction_notes(verified.report):
+        typer.echo(line)
+
+
+class ReportFormat(StrEnum):
+    JSON = "json"
+    TEXT = "text"
+
+
+@app.command("report")
+def report_command(
+    run_id: Annotated[str, typer.Argument(help="Run ID from 'agentfence runs list'.")],
+    output_format: Annotated[
+        ReportFormat, typer.Option("--format", help="json or text.")
+    ] = ReportFormat.TEXT,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", help="Write to this new file (never overwrites)."),
+    ] = None,
+) -> None:
+    """Export a saved run's report after verifying it.
+
+    Read-only unless --output is given; refuses to export if the report or its evidence
+    fails verification. HTML export arrives with AF-0503.
+    """
+    verified = _verified(run_id)
+    if output_format is ReportFormat.JSON:
+        text = verified.text
+    else:
+        text = render_summary(verified.report) + "".join(
+            f"{line}\n" for line in reproduction_notes(verified.report)
+        )
+    if output is None:
+        typer.echo(text, nl=False)
+        return
+    try:
+        written = write_export(output, text)
+    except (ExportError, OSError) as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    typer.echo(f"Wrote {scrub_text(str(written), home=os.environ.get('HOME'))}", err=True)
 
 
 def main() -> None:
