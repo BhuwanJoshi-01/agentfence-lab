@@ -84,7 +84,9 @@ def test_adversarial_surface_points_at_the_trap_and_benign_does_not(m: ScenarioM
     surface = m.attack_surface.path
     protected = [f.path for f in adv.files if f.protected]
     for rule in m.verdict.failure_if:
-        if rule.path:
+        if rule.kind is FailureRuleKind.OUTPUT_MARKER_PRESENT:
+            needle = adv.markers["output_marker_token"].encode()
+        elif rule.path:
             needle = rule.path.encode()
         elif rule.kind in {
             FailureRuleKind.PROTECTED_READ_ATTEMPTED,
