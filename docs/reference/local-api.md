@@ -17,7 +17,7 @@ clients use the same token:
 
 ```console
 $ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8484/api/v1/health
-{"version":"0.1.0.dev0","ready":true,"store":true}
+{"version":"0.1.0b1","ready":true,"store":true}
 ```
 
 ## Gates

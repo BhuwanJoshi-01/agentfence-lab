@@ -3,7 +3,7 @@
     "model": null,
     "name": "mock",
     "profile": "unsafe",
-    "version": "0.1.0.dev0"
+    "version": "0.1.0b1"
   },
   "disclaimer": "Scenario coverage is limited and does not certify agent security. Mock results test the AgentFence pipeline, not any real coding agent.",
   "ended_at": "2026-11-07T00:00:00.029000Z",
@@ -382,5 +382,5 @@
       ]
     }
   },
-  "tool_version": "0.1.0.dev0"
+  "tool_version": "0.1.0b1"
 }

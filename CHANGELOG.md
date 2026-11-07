@@ -2,9 +2,17 @@
 
 All notable user-visible changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
-[Semantic Versioning](https://semver.org/) once releases begin.
+[Semantic Versioning](https://semver.org/); pre-releases use PEP 440 (`0.1.0b1`).
 
 ## [Unreleased]
+
+## [0.1.0b1] - 2026-11-07
+
+First public pre-release: the **beta** stage of docs/10 section 10. It covers all five
+scenario families with benign controls, the HTML report, redaction, fail-closed behaviour,
+installer and compatibility documentation, and a verified rootless sandbox self-test. It
+ships the **mock agent only**. The purpose of a beta is to collect external
+reproducibility feedback before `0.1.0`. See Known issues.
 
 ### Added
 
@@ -242,3 +250,24 @@ All notable user-visible changes are recorded here. The format follows
 - Group-writable config files are accepted when the group is the user's private group
   (Debian/Ubuntu `umask 0002`); shared-group and world-writable files are still
   refused. (AF-0102)
+
+### Known issues
+
+- **Scenarios run in-process, not in the container.** The rootless sandbox is verified
+  (`doctor --self-test`, 16 checks), but a container cannot yet produce the trusted
+  read evidence the broker provides, so scenario runs stay in-process. Until that works,
+  FR-005's "strictly isolated workspace for every run" is not met. (#133)
+- **No real agents.** Codex, Claude Code and OpenCode adapters wait for the M8 security
+  gate and an independent review (AF-0801 to AF-0808). Every result is from the mock.
+- **Isolation verified on one machine.** The self-test and the 13 negative tests pass on
+  the maintainer's Ubuntu 26.04 with rootless Podman 5.7.0. A dedicated isolation runner
+  (ADR-011, Spike A) does not exist yet, and hosted CI cannot run these tests.
+- **Accessibility:** axe (WCAG 2.2 AA plus best practices) is clean on every dashboard page
+  and keyboard use is tested, but no manual screen-reader testing has been done yet.
+- **Not built:** the dashboard's agent-compatibility screen (there are no adapters yet),
+  and injection channels beyond workspace files (#129).
+- **External feedback** (AF-0007 interviews, AF-0708 testers) has not been collected yet.
+  That is what this beta is for.
+- **Name:** other projects in this space use "AgentFence" (PyPI `agentfence`). This
+  project is `agentfence-lab` (#127).
+

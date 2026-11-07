@@ -12,7 +12,7 @@ It is for people who configure coding agents and want a local, reproducible regr
 test for those boundaries, and for security reviewers who want to see the evidence
 behind a verdict.
 
-> **Status: pre-alpha (`0.1.0.dev0`).** The offline pipeline works end to end with a
+> **Status: beta pre-release (`0.1.0b1`).** The offline pipeline works end to end with a
 > deterministic **mock** agent, which runs in-process. The rootless container sandbox is
 > verified by `agentfence doctor --self-test`, but scenarios do not run inside it yet, and
 > there is **no real agent support**. Mock results test AgentFence itself, not any real
@@ -228,6 +228,7 @@ see [SECURITY.md](SECURITY.md). Everyone is expected to follow the
 | [Architecture decisions](docs/adr) | ADR-010 to ADR-015 |
 | [Reference](docs/reference) | Evaluator, trust boundaries, sandbox policy, local API, data retention, supply chain |
 | [CHANGELOG.md](CHANGELOG.md) | User-visible changes |
+| [RELEASING.md](docs/RELEASING.md) | How releases are built, checked and published |
 
 ## License
 

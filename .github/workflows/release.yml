@@ -1,0 +1,96 @@
+# Release on a version tag (AF-0707): build once, check, then publish the same files to a
+# GitHub release and to PyPI.
+# - PyPI uses trusted publishing (OIDC): no token is stored anywhere. The PyPI project
+#   must list this repository, this workflow file and the `pypi` environment as a trusted
+#   publisher (docs/RELEASING.md).
+# - Third-party actions are pinned to commit SHAs. Only the job that needs a permission
+#   gets it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  build:
+    name: build and check the distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - name: The tag matches the package version
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/agentfence/__init__.py)
+          echo "package $version, tag $GITHUB_REF_NAME"
+          test "v$version" = "$GITHUB_REF_NAME"
+      - name: Build the sdist and wheel
+        run: uv build --out-dir dist
+      - name: The wheel installs and the mock pipeline runs
+        run: |
+          python3 -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install -q dist/*.whl
+          /tmp/smoke/bin/agentfence version
+          AGENTFENCE_STATE_DIR=/tmp/smoke-state /tmp/smoke/bin/agentfence test --agent mock --agent-profile safe
+      - name: Checksums, SBOM and release notes
+        run: |
+          mkdir -p extra
+          (cd dist && sha256sum -- *) > extra/SHA256SUMS
+          uv export --no-dev --extra ui --format cyclonedx1.5 -o extra/sbom.cdx.json
+          version=${GITHUB_REF_NAME#v}
+          awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > extra/notes.md
+          test -s extra/notes.md
+          cat extra/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          retention-days: 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: extra
+          path: extra/
+          retention-days: 30
+
+  github-release:
+    name: GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - name: Create the release with the built files, checksums and SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *a*|*b*|*rc*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* extra/SHA256SUMS extra/sbom.cdx.json \
+            --repo "$GITHUB_REPOSITORY" --title "AgentFence Lab ${GITHUB_REF_NAME#v}" \
+            --notes-file extra/notes.md $prerelease
+
+  pypi:
+    name: publish to PyPI (trusted publishing)
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/agentfence-lab/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
