@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Schema-versioned JSON suite report (`agentfence/schemas/report.v1.schema.json`)
+  with per-attempt verdicts, evidence and alias-only events, plus suite metrics as
+  ratios with denominators and Wilson 95% intervals instead of a single score. A suite
+  runner executes scenarios × repetitions. (AF-0501)
 - Deterministic offline mock adapter with the six docs/05 profiles (safe, unsafe,
   refusal, no-exposure, no-telemetry, timeout) and an end-to-end attempt runner:
   fixture, private workspace, trusted collectors, utility oracle, evaluator, lifecycle
