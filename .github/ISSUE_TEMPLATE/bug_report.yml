@@ -1,0 +1,55 @@
+name: Bug report
+description: Something AgentFence Lab did that it should not have, or a wrong or unsupported verdict.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Never paste real credentials, tokens or private paths.** Reports and logs are redacted by design, but check before you paste. Security issues go through private reporting (see the issue chooser).
+  - type: input
+    id: version
+    attributes:
+      label: AgentFence version
+      description: Output of `agentfence version --json`.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and distro, container runtime, and whether `agentfence doctor` reports isolation as OFFLINE_SAFE or UNSUPPORTED.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: The command you ran, with any secrets removed. Include `--agent-profile`, `--seed` and `--cases` if you used them.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened instead, with the exit code.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Run ID, scenario ID and version, and relevant event IDs. `agentfence runs show <run-id>` prints a reproduce command.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: I removed real credentials, tokens, usernames and private paths from everything above.
+          required: true
