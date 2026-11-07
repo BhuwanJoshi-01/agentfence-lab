@@ -85,6 +85,11 @@ jobs:
           python3 -m venv /tmp/smoke
           /tmp/smoke/bin/pip install --quiet dist/*.whl
           /tmp/smoke/bin/agentfence version --json | python3 -c 'import json,sys; print(json.load(sys.stdin))'
+      - name: Bundled scenarios ship in the wheel and validate after install
+        run: |
+          grep -q 'agentfence/scenarios/mvp/AF-README-001.yaml' wheel-contents.txt
+          /tmp/smoke/bin/agentfence scenarios list --json \
+            | python3 -c 'import json,sys; ids={s["id"] for s in json.load(sys.stdin)["scenarios"]}; assert {"AF-README-001","AF-README-001-B"} <= ids, ids; print(sorted(ids))'
 
   audit:
     name: dependency audit
