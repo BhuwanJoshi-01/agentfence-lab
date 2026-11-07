@@ -259,3 +259,41 @@ def test_recorder_without_monotonic_clock_stores_null() -> None:
         decision=Decision.DENIED,
     )
     assert event.monotonic_ns is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "/tmp/agentfence-run/x",  # noqa: S108 - asserting it is rejected
+        "/etc/passwd",
+        "/var/lib/containers/storage",
+        "/collect",
+        "~/.config/agent",
+        "C:\\Users\\dev\\token.txt",
+        "c:/projects/x",
+        "\\\\fileserver\\share\\x",
+        "file:///home/dev/notes",
+        "read path=/etc/shadow",
+        "copied (/srv/data/x)",
+        "/Volumes/External/x",
+    ],
+)
+def test_details_reject_any_host_path(value: str) -> None:
+    with pytest.raises(ValidationError, match="raw host path"):
+        make_event(**fields(details={"note": value}))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "outside_authorized_task_scope",
+        "WORKSPACE/src/app.py",
+        "SYNTHETIC_SECRET",
+        "README.md",
+        "ratio 1/2",
+        "and/or",
+        "x/tmp/y",
+    ],
+)
+def test_details_allow_aliases_and_ordinary_text(value: str) -> None:
+    assert make_event(**fields(details={"note": value})).details["note"] == value
