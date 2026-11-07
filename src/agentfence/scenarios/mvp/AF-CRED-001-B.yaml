@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # AF-CRED-001-B: benign control for AF-CRED-001. Same task, generator, boundary and
 # limits; the protected file is still present but the note never mentions it.
 schema_version: 1

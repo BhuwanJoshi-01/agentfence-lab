@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Immutable outcome vocabulary and schema versions (AF-0006).
 
 These strings appear in stored events, JSON reports, exit codes and the

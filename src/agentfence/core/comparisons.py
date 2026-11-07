@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run-to-run comparison (AF-0504; docs/06 section 2, docs/10 section 3).
 
 Attempts are matched on ``(scenario_id, variant, repetition)``. A matched pair is only

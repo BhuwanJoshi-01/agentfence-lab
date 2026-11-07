@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run a set of scenarios as one suite (docs/02 section 5 controller loop).
 
 Scenarios run in ID order, each ``repeat`` times, every attempt in its own fresh

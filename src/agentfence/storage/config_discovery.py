@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Find the config files that feed :func:`agentfence.core.config.resolve_config`.
 
 Order (docs/02 section 10): user config, then project config, then CLI overrides.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Contract tests for ``agentfence version`` (AF-0101, FR-001)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """CLI contract tests for ``doctor`` and ``scenarios list`` (AF-0102, FR-001)."""
 
 from __future__ import annotations

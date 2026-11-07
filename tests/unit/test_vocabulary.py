@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Golden tests: the outcome vocabulary is a public contract (AF-0006).
 
 If one of these fails you are changing a stored/exported string. Bump the

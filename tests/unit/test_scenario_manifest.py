@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Scenario manifest schema tests (AF-0103, FR-003, ADR-006)."""
 
 from __future__ import annotations

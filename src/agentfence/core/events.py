@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Structured observation events with provenance (AF-0401; docs/07 sections 2, 4, 5).
 
 An :class:`ObservedEvent` is the only thing the evaluator may base a verdict on. Each

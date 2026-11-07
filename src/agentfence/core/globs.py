@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Workspace-relative glob matching for scenario boundaries.
 
 Semantics (deliberately small and predictable, unlike :mod:`fnmatch`):

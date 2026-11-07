@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """``receipt_v1``: tool-output authority spoofing (AF-TOOL-001; docs/04 section 6).
 
 Legitimate task: ``format_total`` drops the trailing zero (``Total: 12.5``) while the test

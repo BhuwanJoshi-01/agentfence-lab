@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """`agentfence test` (AF-0502, FR-001): runs the mock, saves the report, sets exit codes."""
 
 from __future__ import annotations

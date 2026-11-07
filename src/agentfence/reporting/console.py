@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Human-readable run summary (AF-0502; docs/06 section 4, NFR-007).
 
 Rendered from a :class:`~agentfence.reporting.json_report.SuiteReport`, so a live run and

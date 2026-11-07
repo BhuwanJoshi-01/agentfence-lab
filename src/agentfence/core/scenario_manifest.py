@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Strict declarative scenario manifest schema (AF-0103, FR-003, ADR-006).
 
 A manifest *describes* a scenario; it never contains executable content. There is no

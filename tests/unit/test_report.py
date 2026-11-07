@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Metrics, suite runner and JSON report (AF-0501, ADR-003)."""
 
 from __future__ import annotations

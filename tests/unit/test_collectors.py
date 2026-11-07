@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Trusted collectors (AF-0403): broker, snapshot and mock network."""
 
 from __future__ import annotations

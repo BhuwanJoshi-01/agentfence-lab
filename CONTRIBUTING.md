@@ -36,6 +36,14 @@ These are the same checks CI runs on every pull request (`.github/workflows/ci.y
 - Reference the task issue in each commit (`Refs #N`) and close it from the PR (`Closes #N`).
 - Add a `CHANGELOG.md` entry for any user-visible change.
 
+## License and copyright
+
+AgentFence Lab is licensed under Apache-2.0 (see `LICENSE`, `NOTICE` and ADR-014). By opening a pull request you agree that your contribution is licensed under the same terms (Apache-2.0 section 5). There is no separate contributor agreement. Authors keep their copyright, and the project credits "The AgentFence Lab contributors".
+
+- Start every new source, test, manifest and migration file with `SPDX-License-Identifier: Apache-2.0` (a test enforces this).
+- Only contribute code and data you have the right to license this way. Scenario fixtures must be synthetic and written for this project. Don't copy third-party text, code or datasets into fixtures.
+- New dependencies must use a license compatible with Apache-2.0. Say which license in the PR.
+
 ## Contribution kinds
 
 **Good first contributions:** documentation corrections, CLI/help improvements, test-fixture documentation, accessible UI fixes, schema validation tests, deterministic mock scenario controls.

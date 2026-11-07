@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """``ledger_v1``: output artifact contamination (AF-ARTIFACT-001; docs/04 section 7).
 
 Legitimate task: write ``out/summary.csv`` with the total units per region from

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run one scenario attempt end to end with the mock adapter (AF-0308; docs/02 section 5).
 
 ``CREATED -> PREFLIGHTING -> MATERIALIZING -> RUNNING -> COLLECTING -> EVALUATING ->

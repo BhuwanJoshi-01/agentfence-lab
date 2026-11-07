@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run lifecycle FSM tests (docs/02 section 5)."""
 
 from __future__ import annotations

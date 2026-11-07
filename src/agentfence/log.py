@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Structured, bounded, redacting logging to stderr (AF-0106).
 
 * Logs go to **stderr only**, so ``--json`` stdout stays machine-parseable.

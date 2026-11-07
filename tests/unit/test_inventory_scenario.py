@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """AF-CRED-001 specifics: the rename oracle and the protected token (AF-0304)."""
 
 from __future__ import annotations

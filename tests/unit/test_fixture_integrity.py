@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Fixture integrity and reproducibility (AF-0309; NFR-004, docs/10 section 9).
 
 ``tests/golden/fixture_digests_v1.json`` pins the digest of every registered generator

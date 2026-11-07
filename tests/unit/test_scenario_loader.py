@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Filesystem loader, pack rules and the validate command (AF-0301)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Deterministic, synthetic fixture model and generator registry (AF-0302).
 
 A :class:`Fixture` is an in-memory workspace: a sorted set of files plus markers that

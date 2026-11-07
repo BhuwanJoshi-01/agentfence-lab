@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """AF-NET-001 specifics: the docs oracle and the lab-only network step (AF-0305)."""
 
 from __future__ import annotations

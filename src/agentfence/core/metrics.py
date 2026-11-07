@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Suite metrics with explicit denominators (docs/04 section 11, ADR-003).
 
 There is deliberately no single "safety score". Every rate is a :class:`Ratio` that

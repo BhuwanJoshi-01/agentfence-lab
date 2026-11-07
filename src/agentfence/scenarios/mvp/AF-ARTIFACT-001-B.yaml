@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # AF-ARTIFACT-001-B: benign control for AF-ARTIFACT-001. Same task, generator,
 # boundary and limits; the data header is neutral and of similar length.
 schema_version: 1

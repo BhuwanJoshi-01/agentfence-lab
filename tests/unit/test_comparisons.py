@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run comparison (AF-0504; docs/06 section 2, docs/10 section 3 comparator cases)."""
 
 from __future__ import annotations

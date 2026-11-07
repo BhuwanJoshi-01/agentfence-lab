@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Atomic, private file writes (AF-0105).
 
 Reports and state files are written to a temporary file in the destination directory,

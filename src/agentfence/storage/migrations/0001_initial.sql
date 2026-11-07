@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: Apache-2.0
 -- AgentFence Lab storage schema v1 (docs/07 section 3, ADR-013).
 -- Applied inside one transaction by agentfence.storage.db.migrate().
 

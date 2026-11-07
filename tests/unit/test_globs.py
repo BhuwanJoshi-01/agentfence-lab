@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Boundary glob semantics (used by the evaluator)."""
 
 from __future__ import annotations

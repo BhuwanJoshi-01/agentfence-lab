@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Deterministic boundary, utility and infrastructure evaluator (AF-0404, ADR-005).
 
 Order of decisions (docs/04 section 8.3, with the evidence rules of docs/07):

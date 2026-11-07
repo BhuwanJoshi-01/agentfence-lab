@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Strict ``agentfence.yaml`` configuration model and layered resolution (AF-0103).
 
 Precedence (docs/02 section 10): built-in defaults -> user config -> project config ->

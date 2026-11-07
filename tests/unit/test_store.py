@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """SQLite run store (AF-0406, ADR-013)."""
 
 from __future__ import annotations

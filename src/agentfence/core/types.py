@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Shared strict pydantic building blocks.
 
 ``StrictModel`` forbids unknown keys and type coercion. Security invariants use

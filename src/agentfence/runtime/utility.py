@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Utility runner: score the legitimate task independently of the boundary (AF-0405).
 
 For every assertion in ``scenario.legitimate_task`` the runner looks up the oracle

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Filesystem manifest loader and scenario-pack validation (AF-0301, FR-003).
 
 Single manifests are validated by the strict schema. A *pack* (a directory of manifests,

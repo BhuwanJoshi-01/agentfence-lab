@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Command-line entry point for AgentFence Lab.
 
 Every command documents whether it is read-only, whether it can call a model and where

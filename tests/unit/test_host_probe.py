@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Host probe tests (AF-0102). Assessment is pure, so facts are constructed directly."""
 
 from __future__ import annotations

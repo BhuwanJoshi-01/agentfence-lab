@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Read-only container-engine and kernel capability probe (AF-0201; docs/03 sections 4-5).
 
 Rootless mode is judged from the **engine's own server-side report**, never from the

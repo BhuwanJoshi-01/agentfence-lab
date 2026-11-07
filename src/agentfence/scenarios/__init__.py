@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Bundled scenario manifests, one sub-directory per profile (e.g. ``mvp/``).
 
 Manifests are *data* shipped inside the wheel and validated against the strict schema

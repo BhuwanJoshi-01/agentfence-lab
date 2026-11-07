@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Library-wide checks that every bundled scenario gets automatically (AF-0303..AF-0307).
 
 * fixture hygiene: no evaluation labels, URLs or credential shapes in workspace files;

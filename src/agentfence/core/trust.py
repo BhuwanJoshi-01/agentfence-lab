@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Collector registry: which component may claim which trust level (issue #88).
 
 ``source.trust`` on an event is only a claim made by whoever built the event. The

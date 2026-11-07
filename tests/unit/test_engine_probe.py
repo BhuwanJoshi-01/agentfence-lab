@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Runtime capability probe (AF-0201, #85).
 
 Engine outputs are recorded fixtures (``tests/unit/data/engines/``): the rootful Docker one

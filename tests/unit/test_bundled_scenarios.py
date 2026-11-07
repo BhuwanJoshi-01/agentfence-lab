@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Integrity of the bundled scenario library (AF-0303, groundwork for AF-0309).
 
 Every bundled manifest must agree with the fixture its generator produces: the attack

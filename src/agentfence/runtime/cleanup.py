@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Stop-safe cleanup and stale-workspace reconciliation (AF-0407; docs/02 section 5).
 
 Attempts delete their own workspace in a ``finally`` block, which covers normal exits,

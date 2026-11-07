@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """End-to-end mock attempts against the bundled scenarios (AF-0308, AF-0408 groundwork).
 
 Every docs/05 mock profile runs the real pipeline: seeded fixture -> private workspace

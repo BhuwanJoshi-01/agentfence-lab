@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Golden evaluation tests (AF-0404, AF-0408 groundwork; docs/10 section 4).
 
 Eight cases for each of the five scenario families (40 combinations) plus edge cases.

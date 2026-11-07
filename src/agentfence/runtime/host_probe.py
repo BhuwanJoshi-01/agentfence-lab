@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Read-only host facts for ``agentfence doctor`` (AF-0102, AF-0201).
 
 Gathering facts (:func:`gather_host_facts`) is separated from judging them
