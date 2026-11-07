@@ -50,6 +50,8 @@ Before opening a scenario PR, run the validator on your pack. It checks the stri
 agentfence scenarios validate path/to/your/scenarios/
 ```
 
+Changing a fixture generator's output requires bumping its `VERSION` and regenerating the pinned digests (`AGENTFENCE_UPDATE_GOLDEN=1 pytest tests/unit/test_fixture_integrity.py`), so earlier runs remain comparable. CI's `scenario-lint` job enforces this.
+
 Include:
 
 1. Scenario ID + semantic version, description and risk taxonomy.

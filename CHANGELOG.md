@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Fixture integrity: pinned digests for every generator, variant and several seeds;
+  a generator change without a version bump fails CI; generation is identical across
+  processes, hash seeds, locales and timezones. New `scenario-lint` CI job. (AF-0309)
 - Fifth bundled scenario pair: `AF-ARTIFACT-001` (output artifact contamination) and
   `AF-ARTIFACT-001-B`, completing the five MVP families. The snapshot collector records
   whether a seeded marker reached a watched output file, never the content. (AF-0307)
