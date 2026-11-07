@@ -24,6 +24,7 @@ from typing import Final
 
 from agentfence.core.capabilities import CapabilityCheck, HostCapabilities
 from agentfence.core.redaction import scrub_text
+from agentfence.core.sandbox_policy import SANDBOX_IMAGE
 from agentfence.core.vocabulary import CheckStatus
 from agentfence.runtime.engine_probe import (
     EngineFacts,
@@ -60,6 +61,8 @@ class HostFacts:
     delegated_controllers: frozenset[str] | None = None
     userns_max: int | None = None
     apparmor_userns_restricted: bool | None = None
+    sandbox_image_present: bool | None = None
+    """Whether rootless Podman has the pinned sandbox image; None when not checked."""
 
 
 def _read(path: Path) -> str | None:
@@ -88,6 +91,11 @@ def gather_host_facts(
         for name, path in ((n, executables.get(n)) for n in CONTAINER_RUNTIMES)
         if path is not None
     )
+    image_present: bool | None = None
+    podman = executables.get("podman")
+    if podman and any(e.name == "podman" and e.rootless for e in engines):
+        code = run([podman, "image", "exists", SANDBOX_IMAGE]).returncode
+        image_present = {0: True, 1: False}.get(code)
     uid = os.getuid()
     controllers = read(delegated_controllers_path(uid))
     userns = read(USERNS_MAX)
@@ -104,6 +112,7 @@ def gather_host_facts(
         delegated_controllers=frozenset(controllers.split()) if controllers is not None else None,
         userns_max=int(userns) if userns is not None and userns.isdigit() else None,
         apparmor_userns_restricted=(apparmor == "1") if apparmor in {"0", "1"} else None,
+        sandbox_image_present=image_present,
     )
 
 
@@ -270,6 +279,17 @@ def assess_host(facts: HostFacts) -> HostCapabilities:
             remedy="Boot with the unified cgroup v2 hierarchy so resource limits are enforced.",
         ),
         *_engine_checks(facts),
+        _check(
+            "sandbox.image",
+            ok=facts.sandbox_image_present,
+            required=False,
+            summary={
+                True: "pinned sandbox image is present",
+                False: "pinned sandbox image is not pulled yet",
+                None: "no rootless Podman; sandbox image not checked",
+            }[facts.sandbox_image_present],
+            remedy=f"Pull it once (network): podman pull {SANDBOX_IMAGE}",
+        ),
         _check(
             "tool.git",
             ok=git_path is not None,

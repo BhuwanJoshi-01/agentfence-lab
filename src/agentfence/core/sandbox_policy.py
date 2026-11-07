@@ -37,6 +37,14 @@ from pydantic import Field, field_validator
 from agentfence.core.config import ResourceLimits
 from agentfence.core.types import LockedFalse, LockedTrue, StrictModel
 
+SANDBOX_IMAGE: Final = (
+    "docker.io/library/python"
+    "@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca"
+)
+"""Official ``python:3.13-alpine`` (Python 3.13.18), pinned 2026-11-07 by its OCI image-index
+digest. It is never pulled at run time (``--pull=never``); ``doctor`` names the one-time
+``podman pull`` command when it is missing. AgentFence code reaches the container as
+arguments, so no locally built image (whose digest would differ per machine) is needed."""
 WORKSPACE_PATH: Final = "/workspace"
 TMP_PATH: Final = "/tmp"  # noqa: S108 - the container's own /tmp, a size-limited tmpfs
 LABEL_PREFIX: Final = "io.agentfence"

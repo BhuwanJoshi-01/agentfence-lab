@@ -87,6 +87,9 @@ All notable user-visible changes are recorded here. The format follows
   workspace volume instead of host mounts, resource caps and run labels. An allowlist
   auditor refuses any other option. Argument-level only: no container is started yet.
   See `docs/reference/sandbox-policy.md`. (AF-0203)
+- Pinned sandbox image: official `python:3.13-alpine` by OCI image-index digest, never
+  pulled at run time. `doctor` reports whether rootless Podman has it (optional
+  `sandbox.image` check) and names the one-time `podman pull` command. (AF-0202)
 - `agentfence ui`: read-only local API on a loopback address (optional `ui` extra:
   FastAPI and uvicorn). Requests must name the loopback host, come from the same origin and
   carry the printed session token; only `GET` routes exist; run data is served from the

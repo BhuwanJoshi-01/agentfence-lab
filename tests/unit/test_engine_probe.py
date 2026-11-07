@@ -286,3 +286,67 @@ def test_run_bounded_timeout_and_relative_executable_are_failures(
     slow = fake_engine(tmp_path, "time.sleep(30)")
     assert engine_probe.run_bounded([slow]) == QueryResult(-1, b"")
     assert engine_probe.run_bounded(["docker", "info"]) == QueryResult(-1, b"")
+
+
+# --- the pinned sandbox image (AF-0202) ------------------------------------------------------
+
+
+def podman_runner(info: str, image_code: int):  # type: ignore[no-untyped-def]
+    seen: list[list[str]] = []
+
+    def run(argv: Sequence[str]) -> QueryResult:
+        seen.append(list(argv))
+        if argv[1:3] == ["image", "exists"]:
+            return QueryResult(image_code, b"")
+        return QueryResult(0, fixture(info))
+
+    run.seen = seen  # type: ignore[attr-defined]
+    return run
+
+
+@pytest.mark.parametrize(("code", "present"), [(0, True), (1, False), (125, None)])
+def test_image_presence_is_checked_on_rootless_podman(
+    tmp_path: Path, code: int, present: bool | None
+) -> None:
+    from agentfence.core.sandbox_policy import SANDBOX_IMAGE  # noqa: PLC0415
+
+    run = podman_runner("podman_rootless.json", code)
+    facts = gather_host_facts(
+        which=lambda n: "/usr/bin/podman" if n == "podman" else None,
+        cgroup_marker=tmp_path / "x",
+        run=run,
+        read=lambda _p: None,
+    )
+    assert facts.sandbox_image_present is present
+    assert ["/usr/bin/podman", "image", "exists", SANDBOX_IMAGE] in run.seen  # type: ignore[attr-defined]
+    check = next(c for c in assess_host(facts).checks if c.id == "sandbox.image")
+    assert not check.required
+    assert (
+        check.status
+        is {True: CheckStatus.PASS, False: CheckStatus.FAIL, None: CheckStatus.UNKNOWN}[present]
+    )
+    if present is not True:
+        assert f"podman pull {SANDBOX_IMAGE}" in check.remedy
+
+
+def test_image_is_not_checked_on_a_rootful_engine(tmp_path: Path) -> None:
+    run = podman_runner("podman_rootful_noseccomp.json", 0)
+    facts = gather_host_facts(
+        which=lambda n: "/usr/bin/podman" if n == "podman" else None,
+        cgroup_marker=tmp_path / "x",
+        run=run,
+        read=lambda _p: None,
+    )
+    assert facts.sandbox_image_present is None
+    assert not any("exists" in argv for argv in run.seen)  # type: ignore[attr-defined]
+
+
+def test_pinned_image_is_a_digest_reference() -> None:
+    from agentfence.core.sandbox_policy import SANDBOX_IMAGE, IsolationPolicy  # noqa: PLC0415
+
+    name, _, digest = SANDBOX_IMAGE.partition("@sha256:")
+    assert name == "docker.io/library/python"
+    assert len(digest) == 64 and int(digest, 16) >= 0
+    IsolationPolicy(
+        run_id="r", attempt_id="a", image=SANDBOX_IMAGE, workspace_volume="agentfence-x"
+    )
