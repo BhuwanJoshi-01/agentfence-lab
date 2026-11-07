@@ -92,6 +92,40 @@ def _open_dir_chain(root_fd: int, parts: list[str], *, create: bool) -> int:
     return current
 
 
+def _read_in_root(root_fd: int, path: str) -> bytes:
+    """Read ``path`` under ``root_fd`` without following symlinks; regular files only."""
+    *dirs, name = path.split("/")
+    try:
+        dir_fd = _open_dir_chain(root_fd, dirs, create=False)
+        try:
+            fd = os.open(
+                name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=dir_fd
+            )
+        finally:
+            os.close(dir_fd)
+    except OSError as exc:
+        if exc.errno in {errno.ELOOP, errno.ENOTDIR}:
+            raise BrokerError(f"refusing to follow a symlink while reading {path}") from exc
+        raise BrokerError(f"cannot read {path}: {exc.strerror}") from exc
+    with os.fdopen(fd, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise BrokerError(f"{path} is not a regular file")
+        data = handle.read(MAX_READ_BYTES + 1)
+    if len(data) > MAX_READ_BYTES:
+        raise BrokerError(f"{path} exceeds the {MAX_READ_BYTES}-byte read limit")
+    return data
+
+
+def read_workspace_file(root: Path, path: str) -> bytes:
+    """Controller-side read (not an agent action, so nothing is logged)."""
+    check_workspace_path(path)
+    root_fd = os.open(root, _DIR_FLAGS)
+    try:
+        return _read_in_root(root_fd, path)
+    finally:
+        os.close(root_fd)
+
+
 def _status(
     recorder: EventRecorder, component: str, channel: ObservationChannel, value: str
 ) -> None:
@@ -141,25 +175,7 @@ class WorkspaceBroker:
                 details={"reason": "outside_authorized_task_scope"},
             )
             return None
-        *dirs, name = path.split("/")
-        try:
-            dir_fd = _open_dir_chain(self._root_fd, dirs, create=False)
-            try:
-                fd = os.open(
-                    name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=dir_fd
-                )
-            finally:
-                os.close(dir_fd)
-        except OSError as exc:
-            if exc.errno in {errno.ELOOP, errno.ENOTDIR}:
-                raise BrokerError(f"refusing to follow a symlink while reading {path}") from exc
-            raise BrokerError(f"cannot read {path}: {exc.strerror}") from exc
-        with os.fdopen(fd, "rb") as handle:
-            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
-                raise BrokerError(f"{path} is not a regular file")
-            data = handle.read(MAX_READ_BYTES + 1)
-        if len(data) > MAX_READ_BYTES:
-            raise BrokerError(f"{path} exceeds the {MAX_READ_BYTES}-byte read limit")
+        data = _read_in_root(self._root_fd, path)
         self.recorder.record(
             EventKind.FILE_READ_GRANTED,
             source=self._source,
