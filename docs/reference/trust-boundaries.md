@@ -1,8 +1,8 @@
 # Trust boundaries
 
 This page maps every place where data or control crosses from one trust zone to another, and
-records what enforces each crossing **on `main` today**. It reflects `main` on 2026-11-06,
-after #80 (AF-0301, `scenarios validate`) was merged. Anything not yet built is marked "not
+records what enforces each crossing **on `main` today**. It reflects `main` on 2026-11-07,
+after #116 (AF-0204, process supervisor) was merged. Anything not yet built is marked "not
 implemented" with the task that will build it. A design intention in docs/02 or docs/03 is not counted as enforcement.
 
 Sources: docs/02 section 2 (system context), docs/03 sections 1, 2 and 8 (assets, attack surface,
@@ -17,12 +17,12 @@ outputs > scenario text and model output.
 | Z1 Host account | protected asset | The user's files and home directory, SSH agent, cloud and agent login state, container engine and its socket, host network and local services. Nothing in the sandbox may reach these. |
 | Z2 Operator input | trusted person, content still validated | CLI arguments, environment variables, the user config file under `$XDG_CONFIG_HOME/agentfence/`. |
 | Z3 Project content | untrusted | `./agentfence.yaml` and anything else in the working directory. A cloned repository can ship these files. |
-| Z4 Trusted controller | trusted | The `agentfence` Python process: CLI, config resolution, scenario validation, host probe, event model, evaluator, storage and logging. |
+| Z4 Trusted controller | trusted | The `agentfence` Python process: CLI, config resolution, scenario validation, host and engine probe, fixture materialization, the mock adapter (in-process), event model, evaluator, storage, reporting, retention and logging. |
 | Z5 Scenario content | bundled: reviewed data; user-supplied: untrusted | Bundled manifests shipped as package data, and manifest packs passed to `agentfence scenarios validate <path>`. |
-| Z6 Sandbox | untrusted | The agent adapter, the agent process and the synthetic workspace. **Not implemented** (M2, M3). |
-| Z7 Trusted collectors | trusted, outside the agent-writable filesystem | File-access broker, mock network sink, process supervisor, workspace diff, utility runner. **Not implemented** (M4). |
-| Z8 Local outputs | private to the user | State directory (run artifacts, later SQLite), stdout, stderr. |
-| Z9 Readers | untrusted rendering context | The terminal, CI logs, and later a browser showing HTML reports or the dashboard. |
+| Z6 Sandbox | untrusted | The agent process and its synthetic workspace. **No sandbox exists yet** (M2). The only agent today is the mock, which runs inside the controller process and acts only through the Z7 collectors. Its workspace is a private directory under `<state>/work/<run-id>/`, not an isolated environment, and results say so (`isolation_tier = "mock-inprocess"`). |
+| Z7 Trusted collectors | trusted, outside the agent-writable filesystem | File-access broker, workspace snapshot (diff) and mock network sink (`runtime/collectors.py`), utility runner (`runtime/utility.py`), process supervisor (`runtime/supervisor.py`). Today they run in the controller process next to the mock; a real agent will reach them across the sandbox boundary once M2 exists. |
+| Z8 Local outputs | private to the user | State directory (saved reports, the SQLite store, attempt workspaces), files written with `report --output`, stdout, stderr. |
+| Z9 Readers | untrusted rendering context | The terminal, CI logs, a browser showing an HTML report, and later the dashboard. |
 | Z10 External | untrusted | Internet and local network, model providers, GitHub-hosted CI, PyPI. |
 
 ## Diagram
