@@ -1,8 +1,8 @@
 # Trust boundaries
 
 This page maps every place where data or control crosses from one trust zone to another, and
-records what enforces each crossing **on `main` today**. It reflects `main` on 2026-11-06,
-after #80 (AF-0301, `scenarios validate`) was merged. Anything not yet built is marked "not
+records what enforces each crossing **on `main` today**. It reflects `main` on 2026-11-07,
+after #116 (AF-0204, process supervisor) was merged. Anything not yet built is marked "not
 implemented" with the task that will build it. A design intention in docs/02 or docs/03 is not counted as enforcement.
 
 Sources: docs/02 section 2 (system context), docs/03 sections 1, 2 and 8 (assets, attack surface,
@@ -17,12 +17,12 @@ outputs > scenario text and model output.
 | Z1 Host account | protected asset | The user's files and home directory, SSH agent, cloud and agent login state, container engine and its socket, host network and local services. Nothing in the sandbox may reach these. |
 | Z2 Operator input | trusted person, content still validated | CLI arguments, environment variables, the user config file under `$XDG_CONFIG_HOME/agentfence/`. |
 | Z3 Project content | untrusted | `./agentfence.yaml` and anything else in the working directory. A cloned repository can ship these files. |
-| Z4 Trusted controller | trusted | The `agentfence` Python process: CLI, config resolution, scenario validation, host probe, event model, evaluator, storage and logging. |
+| Z4 Trusted controller | trusted | The `agentfence` Python process: CLI, config resolution, scenario validation, host and engine probe, fixture materialization, the mock adapter (in-process), event model, evaluator, storage, reporting, retention and logging. |
 | Z5 Scenario content | bundled: reviewed data; user-supplied: untrusted | Bundled manifests shipped as package data, and manifest packs passed to `agentfence scenarios validate <path>`. |
-| Z6 Sandbox | untrusted | The agent adapter, the agent process and the synthetic workspace. **Not implemented** (M2, M3). |
-| Z7 Trusted collectors | trusted, outside the agent-writable filesystem | File-access broker, mock network sink, process supervisor, workspace diff, utility runner. **Not implemented** (M4). |
-| Z8 Local outputs | private to the user | State directory (run artifacts, later SQLite), stdout, stderr. |
-| Z9 Readers | untrusted rendering context | The terminal, CI logs, and later a browser showing HTML reports or the dashboard. |
+| Z6 Sandbox | untrusted | The agent process and its synthetic workspace. **No sandbox exists yet** (M2). The only agent today is the mock, which runs inside the controller process and acts only through the Z7 collectors. Its workspace is a private directory under `<state>/work/<run-id>/`, not an isolated environment, and results say so (`isolation_tier = "mock-inprocess"`). |
+| Z7 Trusted collectors | trusted, outside the agent-writable filesystem | File-access broker, workspace snapshot (diff) and mock network sink (`runtime/collectors.py`), utility runner (`runtime/utility.py`), process supervisor (`runtime/supervisor.py`). Today they run in the controller process next to the mock; a real agent will reach them across the sandbox boundary once M2 exists. |
+| Z8 Local outputs | private to the user | State directory (saved reports, the SQLite store, attempt workspaces), files written with `report --output`, stdout, stderr. |
+| Z9 Readers | untrusted rendering context | The terminal, CI logs, a browser showing an HTML report, and later the dashboard. |
 | Z10 External | untrusted | Internet and local network, model providers, GitHub-hosted CI, PyPI. |
 
 ## Diagram
@@ -52,27 +52,30 @@ flowchart LR
         CLI["cli.py"]
         CONFIG["config_discovery.py, config.py, strict_yaml.py"]
         CATALOG["scenarios/loader.py, scenario_manifest.py"]
-        PROBE["runtime/host_probe.py (read-only)"]
+        PROBE["host_probe.py, engine_probe.py"]
+        ATTEMPT["attempt.py, fixtures.py, workspace.py"]
         RUNNER["Preflight and sandbox runner"]:::planned
-        EVENTS["events.py, coverage.py"]
+        EVENTS["events.py, coverage.py, trust.py"]
         EVAL["evaluator.py, globs.py"]
         REDACT["redaction.py, log.py"]
-        STORAGE["storage/paths.py, atomic.py"]
-        REPORTER["Reporter and local API"]:::planned
+        STORAGE["paths.py, atomic.py, db.py, cleanup.py"]
+        REPORTER["json_report.py, html_report.py, export.py"]
+        API["Local dashboard API"]:::planned
     end
 
     subgraph Z1["Z1 Host account (protected)"]
-        FACTS["OS, Python, PATH, cgroup marker"]
+        FACTS["OS, Python, PATH, cgroup and sysctl files"]
         ENGINE["Container engine"]
         SECRETS["Home, SSH agent, cloud and agent logins, host sockets"]
     end
 
     subgraph Z6["Z6 Sandbox (untrusted)"]
-        WORKSPACE["Synthetic workspace"]:::planned
-        AGENT["Agent adapter and process, mock first"]:::planned
+        WORKSPACE["Synthetic workspace (private dir, not isolated)"]
+        MOCK["Mock agent (runs in Z4 today)"]
+        AGENT["Sandboxed agent process"]:::planned
     end
     subgraph Z7["Z7 Trusted collectors"]
-        COLLECTORS["Broker, mock sink, supervisor, diff, utility runner"]:::planned
+        COLLECTORS["Broker, snapshot, mock sink, utility runner, supervisor"]
     end
 
     subgraph Z8["Z8 Local outputs (private)"]
@@ -81,7 +84,8 @@ flowchart LR
     end
     subgraph Z9["Z9 Readers"]
         TERM["Terminal and CI log"]
-        BROWSER["Browser: HTML report, dashboard"]:::planned
+        BROWSER["Browser: HTML report"]
+        DASH["Browser: dashboard"]:::planned
     end
     subgraph Z10["Z10 External"]
         NET["Internet and local network"]
@@ -95,22 +99,25 @@ flowchart LR
     BUNDLED -->|TB-05| CATALOG
     PACK -->|TB-06| CATALOG
     FACTS -->|TB-07| PROBE
-    ENGINE -.->|TB-08| RUNNER
-    RUNNER -.->|"TB-09, TB-10, TB-11"| AGENT
+    ENGINE -->|TB-08| PROBE
+    RUNNER -.->|"TB-09, TB-11"| AGENT
+    ATTEMPT -->|TB-10| WORKSPACE
+    WORKSPACE -->|TB-12| MOCK
     WORKSPACE -.->|TB-12| AGENT
     AGENT -.->|TB-13| SECRETS
     AGENT -.->|TB-14| NET
+    MOCK -->|"TB-14, TB-15"| COLLECTORS
     AGENT -.->|TB-15| COLLECTORS
     AGENT -.->|TB-16| EVENTS
-    COLLECTORS -.->|TB-18| EVENTS
+    COLLECTORS -->|TB-18| EVENTS
     EVENTS -->|TB-19| EVAL
     STORAGE -->|TB-20| STATE
+    REPORTER --> STATE
     REDACT -->|TB-21| STREAMS
     CLI -->|TB-22| STREAMS
     STREAMS --> TERM
-    REPORTER -.-> STATE
-    STATE -.->|TB-23| BROWSER
-    BROWSER -.->|TB-24| REPORTER
+    STATE -->|TB-23| BROWSER
+    DASH -.->|TB-24| API
     AGENT -.->|TB-17| MODEL
 ```
 
@@ -128,7 +135,7 @@ boundary yet.
 | TB-03 | Z2, Z3 | Z4 | Which config files are read: user `config.yaml`, project `./agentfence.yaml`, `--config` or `AGENTFENCE_CONFIG` path | A file owned by another user (root excepted), world-writable, or group-writable by a shared group is refused. There is no upward directory search. Symlinks are resolved and the canonical path is recorded. Only regular files of at most 64 KiB are read. | `storage/config_discovery.py`, `core/config.py` (`layer_from_file`) | `test_config_discovery.py::test_world_writable_config_refused`, `test_config_discovery.py::test_foreign_owned_config_refused`, `test_config_discovery.py::test_no_upward_search`, `test_config.py::test_layer_from_oversized_file` |
 | TB-04 | Z2, Z3 | Z4 | Config content (YAML) | Strict YAML rejects duplicate keys, anchors and aliases, multiple documents, a non-mapping top level, non-string keys, invalid UTF-8 and documents over 256 KiB. The strict schema rejects unknown keys and type coercion. No layer can change the locked invariants `offline_default`, `isolation_preflight_required`, `no_host_mounts`, `require_exposure_for_pass`, `require_observability_for_pass`, `redact_all_synthetic_secret_values` and `allow_external_connections: false`. `ui.listen` must be loopback. | `core/strict_yaml.py`, `core/config.py`, `core/types.py` | `test_strict_yaml.py::test_rejected_inputs`, `test_strict_yaml.py::test_alias_expansion_bomb_rejected_before_expansion`, `test_config.py::test_no_layer_can_weaken_security_invariants`, `test_config_discovery.py::test_project_cannot_weaken_invariants_via_discovery` |
 | TB-05 | Z5 (bundled) | Z4 | Scenario manifests shipped as package data | Strict YAML, then `ScenarioManifest`: no field for commands, hooks, URLs or absolute paths; unknown keys rejected; paths are workspace-relative patterns with no `.`, `..` or empty segments. Pack rules: unique IDs, every benign control paired exactly once, pairs like-for-like. One bad manifest fails the whole listing. At most 200 per profile. | `core/scenario_manifest.py`, `core/types.py`, `scenarios/__init__.py`, `scenarios/loader.py` | `test_scenario_manifest.py::test_executable_or_network_fields_rejected`, `test_types.py::test_unsafe_patterns_rejected`, `test_scenario_catalog.py::test_invalid_manifest_fails_whole_listing`, `test_scenario_catalog.py::test_unpaired_bundled_scenario_rejected` |
-| TB-06 | Z5 (user-supplied) | Z4 | Manifest files under a path given to `scenarios validate` | Same schema and pack rules as TB-05. Files open with `O_NOFOLLOW` and `O_NONBLOCK`, so symlinks and FIFOs are refused. Only regular files are read, the size is capped before reading, a symlinked pack root is refused, and a pack holds at most 500 files. Each file's SHA-256 is recorded. Manifests are parsed as data only and never executed. Not covered: canonical resolution of boundary globs against a materialized workspace (AF-0302), and any review gate or registry for community packs (FR-019). | `scenarios/loader.py`, `cli.py` | `test_scenario_loader.py::test_symlinked_manifest_refused`, `test_scenario_loader.py::test_fifo_is_not_a_regular_file`, `test_scenario_loader.py::test_pair_must_be_like_for_like`, `test_scenario_loader.py::test_cli_validate_writes_nothing` |
+| TB-06 | Z5 (user-supplied) | Z4 | Manifest files under a path given to `scenarios validate` | Same schema and pack rules as TB-05. Files open with `O_NOFOLLOW` and `O_NONBLOCK`, so symlinks and FIFOs are refused. Only regular files are read, the size is capped before reading, a symlinked pack root is refused, and a pack holds at most 500 files. Each file's SHA-256 is recorded. Manifests are parsed as data only and never executed. A pack may only name a built-in fixture generator and existing utility oracles, so it cannot bring code. Not covered: checking a user pack's attack-surface and rule paths against the fixture its generator produces (gap 6), and any review gate or registry for community packs (FR-019). | `scenarios/loader.py`, `cli.py` | `test_scenario_loader.py::test_symlinked_manifest_refused`, `test_bundled_scenarios.py::test_unknown_generator_is_a_pack_problem`, `test_scenario_loader.py::test_fifo_is_not_a_regular_file`, `test_scenario_loader.py::test_pair_must_be_like_for_like`, `test_scenario_loader.py::test_cli_validate_writes_nothing` |
 | TB-07 | Z1 | Z4 | Host facts: OS, architecture, Python version, effective UID, `PATH` lookups for `podman`, `docker` and `git`, the cgroup v2 marker file, delegated cgroup controllers, user namespace and AppArmor sysctls, `HOME` | Fact gathering writes nothing. The only processes it starts are the engine queries in TB-08. Judgement is a pure function. Fail-closed: any required check that is not `PASS` gives `UNSUPPORTED`. Runtime paths are home-scrubbed. | `runtime/host_probe.py`, `core/capabilities.py` | `test_host_probe.py::test_host_without_engine_or_kernel_facts_is_unsupported`, `test_capabilities.py::test_any_required_non_pass_is_unsupported`, `test_cli_doctor_scenarios.py::test_doctor_writes_nothing` |
 | TB-08 | Z1 (container engine) | Z4 | Runtime capability facts: rootless mode, seccomp, cgroup version, engine version | Read from the engine's own server-side report (`docker info`, `podman info`), never the CLI context name (docs/03 section 4). Queries run under the process supervisor: the absolute path from the `PATH` lookup (a relative `PATH` entry is refused), fixed argv, an allowlisted environment, a 15 s timeout that kills the CLI's process group and a 1 MiB cap on what is kept. A rootful daemon is `FAIL`; a failed or unparseable query is `UNKNOWN`, never `PASS`. | `runtime/engine_probe.py`, `runtime/supervisor.py` | `test_engine_probe.py::test_rootful_engine_is_a_fail_with_reason`, `test_engine_probe.py::test_failures_are_unreachable_not_rootless`, `test_engine_probe.py::test_run_bounded_passes_only_the_allowlisted_environment`, `test_engine_probe.py::test_run_bounded_timeout_and_relative_executable_are_failures` |
 
@@ -137,12 +144,12 @@ boundary yet.
 | ID | Source | Destination | Data crossing | Enforcement point | Implemented by today | Tests |
 |---|---|---|---|---|---|---|
 | TB-09 | Z4 | Z6 | Sandbox launch policy: image digest, mounts, user, capabilities, network mode, read-only root, resource limits | The backend builds the full policy, with no host home, sockets or privileged mode, and refuses to launch rather than drop a control. The config already locks `no_host_mounts` and `isolation_preflight_required` to `true`, but nothing launches a sandbox yet, so these are declarations only. | not implemented (AF-0202, AF-0203, AF-0206) | config only: `test_config.py::test_no_layer_can_weaken_security_invariants` |
-| TB-10 | Z4, Z5 | Z6 | Fixture materialization: synthetic workspace files placed in the sandbox | Synthetic assets only, with `AF_FAKE_` markers. Files are copied in, not bind-mounted. Fixture hashes are recorded. | not implemented (AF-0302, AF-0309) | none |
+| TB-10 | Z4, Z5 | Z6 | Fixture materialization: synthetic workspace files placed in the workspace | Synthetic assets only; protected files hold `AF_FAKE_` markers and nothing else. Files are written, never bind-mounted: the root must be new (or an empty private directory we own), directories are `0700`, files are created with `O_CREAT \| O_EXCL \| O_NOFOLLOW` (protected ones `0600`), and the written tree is re-hashed against the fixture digest. Generators are deterministic per seed and their digests are pinned; CI's `scenario-lint` job checks manifests, synthetic data and digests. | `core/fixtures.py`, `runtime/workspace.py`, `scenarios/generators/`, `.github/workflows/ci.yml` (`scenario-lint`) | `test_fixtures.py::test_materialize_writes_exact_bytes_and_modes`, `test_fixtures.py::test_symlinked_root_refused`, `test_fixtures.py::test_non_empty_root_refused`, `test_fixtures.py::test_secret_markers_must_be_synthetic`, `test_fixture_integrity.py::test_fixture_digests_are_pinned` |
 | TB-11 | Z4 | Z6 | Agent launch: argv and environment | Argument array with no shell. Explicit environment allowlist. No provider keys and no host `env` passed through (docs/06 section 6). | partly: `runtime/supervisor.py` starts processes from an argv whose executable is an absolute path, with exactly the environment given (nothing inherited), stdin `/dev/null`, its own process group and a recursion guard. No adapter launches an agent process yet: the mock adapter runs in-process, and real agents wait for the M8 gate (adapter `prepare`). | `test_supervisor.py::test_no_shell_metacharacters_are_interpreted`, `test_supervisor.py::test_environment_is_explicit_and_marked`, `test_supervisor.py::test_a_supervised_child_cannot_supervise_again` |
-| TB-12 | Z6 (workspace) | Z6 (agent) | Untrusted fixture text the agent reads: README notes, tool output, data files | Not prevented. This is the behavior under test. Collectors observe what the agent does after reading, and the evaluator judges it. | not implemented (AF-0303..AF-0307) | none |
-| TB-13 | Z6 | Z1 | File, socket and network access aimed at host secrets and services: home, SSH agent, cloud and agent login dirs, engine socket, D-Bus, X11 or Wayland, host loopback services | Mount allowlist, namespaces, no socket mounts, and refusal to launch if a prohibited mount exists. Verified by `doctor --self-test`. Residual risk: a kernel or runtime compromise (docs/03 section 12). | not implemented (AF-0203, AF-0205, AF-0208) | none |
-| TB-14 | Z6 | Z10 | Outbound network | Tier 0 has no network. Only the in-boundary mock sink is reachable, and denials are logged. | not implemented (AF-0205, AF-0403) | none |
-| TB-15 | Z6 | Z7 | File access requests on synthetic protected assets; requests to the mock sink | The trusted broker decides and logs `file.read_requested`, `file.read_granted` and `file.read_denied`. The sink logs `network.mock_received`. | not implemented (AF-0403, docs/12 Spike B) | none |
+| TB-12 | Z6 (workspace) | Z6 (agent) | Untrusted fixture text the agent reads: README notes, tool output, data files | Not prevented. This is the behavior under test. Five adversarial families (README, CRED, NET, TOOL, ARTIFACT) each ship with a benign control. Workspace files carry no evaluation labels, URLs or credential shapes, and only the adversarial surface carries the deviation. Collectors observe what the agent does after reading, and the evaluator judges it. | `scenarios/mvp/`, `scenarios/generators/` | `test_scenario_library.py::test_fixture_hygiene`, `test_scenario_library.py::test_adversarial_surface_points_at_the_trap_and_benign_does_not`, `test_bundled_scenarios.py::test_benign_surface_does_not_carry_the_deviation` |
+| TB-13 | Z6 | Z1 | File, socket and network access aimed at host secrets and services: home, SSH agent, cloud and agent login dirs, engine socket, D-Bus, X11 or Wayland, host loopback services | Mount allowlist, namespaces, no socket mounts, and refusal to launch if a prohibited mount exists. Verified by `doctor --self-test`. Residual risk: a kernel or runtime compromise (docs/03 section 12). The mock reaches files only through the broker, whose walk cannot leave the workspace (TB-15), but that is a property of trusted mock code, not containment. | not implemented (AF-0203, AF-0205, AF-0208) | none |
+| TB-14 | Z6 | Z10 | Outbound network | Tier 0 has no network. Only the in-boundary mock sink is reachable, and denials are logged. | partly: `runtime/collectors.py` (`MockNetwork`) opens no sockets; an attempt is denied and logged or delivered to the in-memory lab sink, and an external endpoint is always denied. Network isolation for a real agent process is not implemented (AF-0205). | `test_collectors.py::test_network_deny_mode_logs_attempt_and_denial`, `test_collectors.py::test_network_lab_sink_delivers_in_memory_only`, `test_collectors.py::test_network_external_endpoint_always_denied` |
+| TB-15 | Z6 | Z7 | File access requests on synthetic protected assets; requests to the mock sink | The trusted broker decides and logs `file.read_granted` (with a content hash) and `file.read_denied`; the sink logs `network.mock_received`. Paths are walked one component at a time with `O_NOFOLLOW` directory descriptors, so a planted symlink cannot redirect a read or write; FIFOs cannot hang a read; reads and writes are size-capped. Writes are proven by the workspace snapshot, never by the broker. | `runtime/collectors.py` (`WorkspaceBroker`, `WorkspaceSnapshot`, `MockNetwork`) | `test_collectors.py::test_protected_read_is_denied_and_aliased`, `test_collectors.py::test_symlinked_file_cannot_redirect_a_read`, `test_collectors.py::test_symlinked_directory_cannot_redirect_a_write`, `test_collectors.py::test_fifo_read_does_not_hang`, `test_collectors.py::test_read_and_write_limits` |
 | TB-16 | Z6 | Z4 | Agent and adapter output: stdout, stderr, structured tool events, final response | Byte caps on capture. Recorded as `agent_reported` and never accepted as proof of an access, exposure, coverage or utility. | partly: trust rules in `core/vocabulary.py` (`SourceTrust.authoritative_for_access`), `core/evaluator.py`, `core/coverage.py`, `core/trust.py`; bounded capture in `runtime/supervisor.py` (excess is read and counted, never kept, and a process holding a pipe open cannot stall teardown). Not yet wired to an agent adapter (see TB-11). | `test_events.py::test_authority_follows_the_collector_registry`, `test_evaluator_golden.py::test_agent_reported_forbidden_write_does_not_fail`, `test_coverage.py::test_agent_cannot_vouch_for_collectors`, `test_supervisor.py::test_output_is_capped_without_blocking_the_child`, `test_supervisor.py::test_a_process_that_escapes_the_group_cannot_stall_teardown` |
 | TB-17 | Z6 | Z10 | Model requests and provider credentials (Tier 1) | Only an approved route through a reviewed gateway or host broker, with a dedicated constrained credential and no host login state. | not implemented; blocked on the M8 gate (AF-0801..AF-0808, ADR-007, ADR-012 in `docs/adr/0012-mock-first-and-live-candidate.md`, proposed) | none |
 
@@ -150,17 +157,17 @@ boundary yet.
 
 | ID | Source | Destination | Data crossing | Enforcement point | Implemented by today | Tests |
 |---|---|---|---|---|---|---|
-| TB-18 | Z7 | Z4 | Observed events | Strict event schema. Targets must be aliases under `WORKSPACE`, `SYNTHETIC_SECRET`, `MOCK_SINK`, `AGENT`, `SANDBOX` or `HOST`, with no `.`, `..`, backslash, NUL or newline. Details are capped at 32 keys of 512 characters, and detail strings starting with `/home/`, `/Users/` or `/root/` are rejected. The decision must match the event kind. Event IDs are content-addressed, so an altered event fails validation. The collector-side recorder assigns sequence numbers. The stream is bounded and ends with an explicit truncation event. | `core/events.py` | `test_events.py::test_target_must_be_a_safe_alias`, `test_events.py::test_details_are_bounded_and_path_free`, `test_events.py::test_tampered_event_rejected`, `test_coverage.py::test_recorder_reserves_last_slot_for_truncation_notice` |
+| TB-18 | Z7 | Z4 | Observed events | Strict event schema. Targets must be aliases under `WORKSPACE`, `SYNTHETIC_SECRET`, `MOCK_SINK`, `AGENT`, `SANDBOX` or `HOST`, with no `.`, `..`, backslash, NUL or newline. Details are capped at 32 keys of 512 characters, and detail strings starting with `/home/`, `/Users/` or `/root/` are rejected. The decision must match the event kind. Event IDs are content-addressed, so an altered event fails validation. The collector-side recorder assigns sequence numbers. The stream is bounded and ends with an explicit truncation event. A claimed source trust is capped by the collector registry, so an unregistered component counts as `agent_reported`. | `core/events.py`, `core/trust.py` | `test_events.py::test_target_must_be_a_safe_alias`, `test_events.py::test_details_are_bounded_and_path_free`, `test_events.py::test_tampered_event_rejected`, `test_coverage.py::test_recorder_reserves_last_slot_for_truncation_notice`, `test_trust_registry.py::test_spoofed_trust_cannot_prove_violation_exposure_or_coverage` |
 | TB-19 | Z4 (event stream, mixed trust) | Z4 (verdict) | Events plus scenario rules in, verdict out | `validate_stream` rejects mixed attempts, duplicate IDs, sequence gaps and time going backwards. Only `host_observed` and `broker_observed` events count. Coverage comes only from trusted `collector.status` events. A missing or truncated required channel gives `INCONCLUSIVE`. A diff never proves a read. Attempts and completed effects are kept apart. In globs, `*` never crosses `/`. | `core/evaluator.py`, `core/coverage.py`, `core/events.py`, `core/globs.py` | `test_evaluator_golden.py::test_golden_matrix`, `test_evaluator_golden.py::test_pass_requires_exposure_evidence`, `test_evaluator_golden.py::test_inconsistent_stream_is_inconclusive`, `test_coverage.py::test_truncated_stream_downgrades_every_channel` |
 
 ### Controller outputs
 
 | ID | Source | Destination | Data crossing | Enforcement point | Implemented by today | Tests |
 |---|---|---|---|---|---|---|
-| TB-20 | Z4 | Z8 (state dir) | Run artifacts and state files; SQLite later | Directories are created `0700` and files `0600` from creation. Existing paths that are loose, owned by someone else or symlinked are refused, not changed. Writes are atomic replaces with fsync. Run IDs must be canonical UUIDs. `safe_child` rejects traversal and symlink escape. No command writes state yet. | `storage/paths.py`, `storage/atomic.py`; SQLite not implemented (AF-0406) | `test_storage_paths.py::test_existing_loose_directory_refused_not_changed`, `test_storage_paths.py::test_safe_child_rejects_symlink_escape`, `test_storage_atomic.py::test_new_file_is_0600`, `test_storage_atomic.py::test_refuses_to_replace_symlink` |
+| TB-20 | Z4 | Z8 (state dir) | Saved reports, the SQLite store, attempt workspaces | Directories are created `0700` and files `0600` from creation. Existing paths that are loose, owned by someone else or symlinked are refused, not changed. Writes are atomic replaces with fsync. Run IDs must be canonical UUIDs. `safe_child` rejects traversal and symlink escape. The store refuses a loose or symlinked database file and enforces foreign keys and the outcome vocabulary. Events are append-only (triggers) and hash-chained per attempt, verdicts cannot be updated, and the retention purge is the only path that deletes events. Attempt workspaces are removed in `finally` and stale ones reconciled before the next run; cleanup only touches canonical run-UUID entries and never follows symlinks. | `storage/paths.py`, `storage/atomic.py`, `storage/db.py`, `runtime/cleanup.py` | `test_storage_paths.py::test_existing_loose_directory_refused_not_changed`, `test_storage_paths.py::test_safe_child_rejects_symlink_escape`, `test_storage_atomic.py::test_refuses_to_replace_symlink`, `test_store.py::test_evidence_is_append_only`, `test_store.py::test_symlinked_database_refused`, `test_interrupt_and_recovery.py::test_reconcile_never_follows_symlinks`, `test_retention_and_hardening.py::test_orphans_removed_unknown_entries_kept_symlinks_not_followed` |
 | TB-21 | Z4 | Z8 (stderr), then Z9 | Log records and error messages | Logs go to stderr only. Only allowlisted field names print a value. `scrub_text` removes synthetic markers, credential shapes, PEM blocks, home paths and terminal control sequences. Exceptions log the type, never a traceback. Output is capped at 1 MiB with one truncation notice. | `log.py`, `core/redaction.py`, `cli.py` (`_fail`) | `test_log.py::test_json_lines_with_allowlisted_fields_only`, `test_log.py::test_exceptions_log_type_not_traceback`, `test_log.py::test_output_is_capped_with_single_notice`, `test_redaction.py::test_terminal_control_sequences_stripped` |
-| TB-22 | Z4 | Z8 (stdout), then Z9 | Command output: `version`, `doctor`, `scenarios list`, `scenarios validate` | With `--json`, stdout carries exactly one JSON document, so logs never mix in, and JSON escapes control characters. Config source paths, runtime paths and validation problem messages are home-scrubbed. Two gaps are listed below. | `cli.py` | `test_cli_contract.py::test_json_stdout_stays_pure_with_verbose_logging`, `test_cli_doctor_scenarios.py::test_doctor_scrubs_home_in_config_source`, `test_host_probe.py::test_runtime_paths_are_home_scrubbed` |
-| TB-23 | Z8 | Z9 (browser) | JSON and HTML reports | Escaped text, strict CSP, no remote assets, redaction and a preflight scan before export (docs/07 section 10). | not implemented (AF-0501, AF-0503, AF-0505) | none |
+| TB-22 | Z4 | Z8 (stdout), then Z9 | Command output: `version`, `doctor`, `scenarios list` and `validate`, `test`, `runs list`, `show` and `compare`, `report`, `cleanup` | With `--json`, stdout carries exactly one JSON document, so logs never mix in, and JSON escapes control characters. Config source paths, runtime paths and validation problem messages are home-scrubbed; scenario titles and file names pass through `scrub_text` before printing. | `cli.py` | `test_cli_contract.py::test_json_stdout_stays_pure_with_verbose_logging`, `test_cli_doctor_scenarios.py::test_doctor_scrubs_home_in_config_source`, `test_host_probe.py::test_runtime_paths_are_home_scrubbed`, `test_terminal_injection.py::test_scenarios_validate_scrubs_hostile_file_names`, `test_cli_test_command.py::test_json_output_is_the_saved_report` |
+| TB-23 | Z8 | Z9 (browser) | JSON and HTML reports | Reports cite events by ID and alias, so they hold no host paths or synthetic secret values. The HTML report is one self-contained file: escaped text, a strict CSP with no script and a hashed style, no remote resources, embedded JSON that cannot execute. `report` re-checks the saved report's hash, the run's hash chain and every cited evidence ID before showing or exporting, and writes only a new private file. Not implemented: the preflight secret scan before export (docs/07 section 10 item 8), see gap 5. | `reporting/json_report.py`, `reporting/html_report.py`, `reporting/export.py` | `test_html_report.py::test_strict_csp_with_no_scripts_and_hashed_style`, `test_html_report.py::test_hostile_strings_are_escaped_everywhere`, `test_report.py::test_report_leaks_no_paths_or_secrets`, `test_runs_and_report_export.py::test_tampered_evidence_is_refused_even_with_matching_report`, `test_retention_and_hardening.py::test_synthetic_secret_never_reaches_any_artifact` |
 | TB-24 | Z9 (browser) | Z4 (local API) | Dashboard HTTP requests | Loopback bind, origin check, session token, read-only, no arbitrary path reads. The config already forces a loopback `ui.listen` and locks `allow_external_connections` to `false`. | server not implemented (AF-0601, AF-0607); config validation in `core/config.py` | config only: `test_config.py::test_ui_never_binds_non_loopback` |
 
 ### Development and supply chain
@@ -173,8 +180,8 @@ boundary yet.
 
 ## Known gaps on `main`
 
-These were found while writing this inventory. This page only documents them. Fixing them
-belongs to the task named.
+These were found while writing or refreshing this inventory. This page only documents them.
+Fixing them belongs to the task named.
 
 1. **Resolved (#85, AF-0201): doctor detects a rootful runtime.** Rootless mode is read from
    each engine's own server-side report (`docker info` security options, `podman info`
@@ -192,6 +199,15 @@ belongs to the task named.
    `core/trust.py` maps each collector component to the most trust it may claim. Events
    from unregistered components count as `agent_reported`, and claims above a component's
    ceiling are lowered to it (evaluator 1.2.0). Covered by `test_trust_registry.py`.
+5. **Open (#119): no preflight secret scan before export.** docs/07 section 10 item 8 asks `report`
+   to scan what it is about to write and abort if a suspected real secret cannot be
+   sanitized. Today reports stay clean by construction (alias-only targets, scrubbed event
+   details), which `test_retention_and_hardening.py::test_synthetic_secret_never_reaches_any_artifact`
+   checks, but nothing scans the output itself.
+6. **Open (#118): user packs are not checked against their fixtures.** `scenarios validate` accepts
+   a pack whose attack surface or failure-rule paths do not exist in the fixture its
+   generator produces. Bundled scenarios are checked in `test_bundled_scenarios.py`; a user
+   pack with a wrong path would load and then never trigger.
 
 ## Keeping this page current
 
