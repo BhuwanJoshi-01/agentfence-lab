@@ -47,6 +47,12 @@ same reason: every dependency has to be pinned, audited and license-checked.
   checks that. If a future FastAPI release pulls in an SDK or exporter, that test fails.
 - The token is printed once to stderr. Anyone who can read that terminal can use the API.
   That is acceptable on a single-user machine, and it is the reason the API is read-only.
-- The browser dashboard (AF-0602) still has to get the token to the page without putting
-  it in a URL that could leak through history or the `Referer` header. That design belongs
-  to AF-0602 and AF-0607.
+- The browser dashboard gets the token in the URL **fragment** (`/#token=…`). Fragments are
+  sent neither to servers nor in `Referer`. The page moves the token into the tab's
+  `sessionStorage` and replaces the history entry, so the token doesn't stay in the address
+  bar or the back history. Static files need no token because they carry no data. Every
+  data request goes to `/api/v1` with the bearer header (AF-0602, AF-0607).
+- Store connections are opened and closed inside each endpoint. A FastAPI yield dependency
+  may tear down on a different threadpool thread, and SQLite connections must be closed on
+  the thread that opened them. The dashboard's end-to-end tests found this as 500s under
+  parallel requests.

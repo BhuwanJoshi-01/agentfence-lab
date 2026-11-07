@@ -13,9 +13,10 @@ test for those boundaries, and for security reviewers who want to see the eviden
 behind a verdict.
 
 > **Status: pre-alpha (`0.1.0.dev0`).** The offline pipeline works end to end with a
-> deterministic **mock** agent. There is **no sandbox yet**, **no real agent support** and
-> **no dashboard** (only its read-only local API). Mock results test AgentFence itself,
-> not any real coding agent. See [Limitations](#limitations) and the
+> deterministic **mock** agent, which runs in-process. The rootless container sandbox is
+> verified by `agentfence doctor --self-test`, but scenarios do not run inside it yet, and
+> there is **no real agent support**. Mock results test AgentFence itself, not any real
+> coding agent. See [Limitations](#limitations) and the
 > [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).
 
 ## Quickstart (offline, no API keys)
@@ -126,16 +127,29 @@ cancelled. The evaluator rules are in [docs/reference/evaluator.md](docs/referen
   `agentfence cleanup --apply` deletes it. See
   [docs/reference/data-retention.md](docs/reference/data-retention.md).
 
-## Local API
+## Dashboard
 
-`agentfence ui` serves a read-only JSON API on `127.0.0.1` for the planned dashboard. It
-needs the optional `ui` extra (`pip install -e '.[ui]'`), prints a session token, and
-refuses other host names, other origins and anything but `GET`. See
-[docs/reference/local-api.md](docs/reference/local-api.md).
+`agentfence ui` serves a read-only dashboard and its JSON API on `127.0.0.1`. It needs the
+optional `ui` extra (`pip install -e '.[ui]'`):
 
 ```bash
 agentfence ui --port 8484
 ```
+
+Open the link it prints. The session token sits after `#`, which the browser never sends
+to any server. The page moves the token into the tab's session storage and removes it from
+the address bar. The dashboard shows runs, a scenario matrix per run, each attempt's
+event timeline with trust tags, run comparisons, the scenario catalog and the host and
+self-test checks. Nothing can be started, changed or deleted from it.
+
+![Run list: four separate outcome counters with a note that they are not a security score, and the recent mock runs](docs/images/dashboard-runs.png)
+
+![Attempt view for AF-CRED-001: the timeline shows the broker denying a read of the synthetic secret as a blocked attempt, and the evidence panel lists no completed effects](docs/images/dashboard-attempt.png)
+
+The page is built from `dashboard/` (React, TypeScript, Vite) and ships prebuilt inside the
+package, so no Node toolchain is needed to use it. It loads nothing from outside your
+machine, runs under a strict Content-Security-Policy, and is tested with Playwright and axe
+(WCAG 2.2 AA) on desktop and mobile. See [docs/reference/local-api.md](docs/reference/local-api.md).
 
 ## Limitations
 

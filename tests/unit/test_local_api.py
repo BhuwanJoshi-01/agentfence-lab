@@ -258,7 +258,9 @@ def test_ui_command_binds_loopback_and_prints_a_token(
     assert result.exit_code == 0, result.stderr
     assert (seen["host"], seen["port"], seen["proxy_headers"]) == ("127.0.0.1", 8555, False)
     assert seen["server_header"] is False
-    token = result.stderr.rsplit(": ", 1)[1].strip()
+    url = next(w for w in result.stderr.split() if "#token=" in w)
+    assert url.startswith("http://127.0.0.1:8555/#token=")
+    token = url.split("#token=", 1)[1]
     assert len(token) >= 43
     assert result.stdout == ""
     with TestClient(seen["app"], base_url="http://127.0.0.1:8555") as c:
@@ -326,3 +328,136 @@ def test_a_real_server_on_loopback(state: Path) -> None:
         server.should_exit = True
         thread.join(10)
     assert not thread.is_alive()
+
+
+# --- the dashboard's static files (AF-0602) ----------------------------------------------------
+
+
+def test_the_page_needs_no_token_but_gets_a_strict_csp(client: TestClient) -> None:
+    page = client.get("/")
+    assert page.status_code == 200
+    assert page.headers["content-type"].startswith("text/html")
+    csp = page.headers["content-security-policy"]
+    assert "script-src 'self'" in csp and "default-src 'none'" in csp
+    assert "unsafe-inline" not in csp and "unsafe-eval" not in csp
+    assert "<script" in page.text and "<script>" not in page.text  # external module only
+    assert (
+        get(client, "/health").headers["content-security-policy"]
+        == SECURITY_HEADERS["Content-Security-Policy"]
+    )
+
+
+def test_assets_are_served_with_their_types(client: TestClient) -> None:
+    page = client.get("/").text
+    for name, kind in (("js", "text/javascript"), ("css", "text/css")):
+        path = next(p for p in page.split('"') if p.startswith("/assets/") and p.endswith(name))
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith(kind)
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/assets/missing.js",
+        "/assets/..%2F..%2Fapp.py",
+        "/assets/index.html",
+        "/assets/.hidden.js",
+        "/static/index.html",
+        "/index.html",
+    ],
+)
+def test_nothing_else_is_served(client: TestClient, path: str) -> None:
+    assert client.get(path).status_code == 404
+
+
+def test_the_page_still_passes_the_host_and_origin_gates(client: TestClient) -> None:
+    assert client.get("/", headers={"Host": "rebind.example"}).status_code == 403
+    assert client.get("/", headers={"Origin": "http://evil.example"}).status_code == 403
+    assert client.post("/").status_code == 405
+
+
+def test_scenarios_carry_the_catalog_fields(client: TestClient) -> None:
+    readme = next(
+        s for s in get(client, "/scenarios").json()["scenarios"] if s["id"] == "AF-README-001"
+    )
+    assert readme["attack_surface"] == {"kind": "repository_document", "path": "README.md"}
+    assert readme["boundary"]["deny"] == ["notes/**"]
+    assert "access_broker" in readme["observation_channels"]
+    assert readme["failure_rules"] == ["forbidden_path_modified"]
+    assert "LLM01" in readme["risk_tags"]
+
+
+def test_environment_reports_checks_and_the_latest_verified_attestation(
+    client: TestClient, state: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from datetime import UTC, datetime  # noqa: PLC0415
+
+    from agentfence.core.attestation import AttestationCheck, IsolationAttestation  # noqa: PLC0415
+    from agentfence.core.vocabulary import CheckStatus  # noqa: PLC0415
+    from agentfence.runtime.host_probe import HostFacts  # noqa: PLC0415
+    from agentfence.runtime.sandbox import save_attestation  # noqa: PLC0415
+
+    monkeypatch.setattr(
+        api,
+        "gather_host_facts",
+        lambda: HostFacts(system="linux", machine="x86_64", python_version=(3, 13, 0), euid=1000),
+    )
+    body = get(client, "/environment").json()
+    assert body["isolation_state"] == "UNSUPPORTED"
+    assert body["attestation"] is None
+    check = AttestationCheck(
+        id="network.none", status=CheckStatus.PASS, expected="lo", observed="lo"
+    )
+    stamp = datetime(2026, 11, 7, tzinfo=UTC)
+    good = IsolationAttestation.create(
+        created_at=stamp,
+        tool_version="t",
+        engine="podman",
+        engine_version="5.7.0",
+        image="i",
+        policy={},
+        checks=(check,),
+    )
+    save_attestation(resolve_paths(), good)
+    body = get(client, "/environment").json()
+    assert body["attestation"]["attestation_id"] == good.attestation_id
+    assert body["attestation_verified"] and body["attestation_passed"]
+    saved = state / "attestations" / f"{good.attestation_id}.json"
+    saved.write_text(saved.read_text().replace("5.7.0", "9.9.9"))
+    body = get(client, "/environment").json()
+    assert body["attestation_verified"] is False
+    assert body["attestation_passed"] is False
+
+
+def test_parallel_requests_on_a_real_server(state: Path) -> None:
+    """A yield dependency once closed SQLite on another thread: 500s under parallel load."""
+    from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
+
+    run = new_run("safe")
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    server = uvicorn.Server(
+        uvicorn.Config(
+            create_app(resolve_paths(), token=TOKEN, port=port),
+            host="127.0.0.1",
+            port=port,
+            log_level="critical",
+        )
+    )
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.02)
+        base = f"http://127.0.0.1:{port}/api/v1"
+        paths = ["/health", "/runs", f"/runs/{run}", f"/runs/{run}/attempts"] * 15
+        with httpx.Client(trust_env=False) as http, ThreadPoolExecutor(12) as pool:
+            codes = list(pool.map(lambda p: http.get(base + p, headers=AUTH).status_code, paths))
+    finally:
+        server.should_exit = True
+        thread.join(10)
+    assert set(codes) == {200}

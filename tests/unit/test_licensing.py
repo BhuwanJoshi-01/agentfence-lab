@@ -15,6 +15,13 @@ FILES = sorted(
         *ROOT.joinpath("tests").rglob("*.py"),
         *ROOT.joinpath("src/agentfence/scenarios").rglob("*.yaml"),
         *ROOT.joinpath("src/agentfence/storage/migrations").rglob("*.sql"),
+        *(
+            path
+            for folder in ("dashboard/src", "dashboard/tests", "dashboard/e2e")
+            for pattern in ("*.ts", "*.tsx", "*.css")
+            for path in ROOT.joinpath(folder).rglob(pattern)
+        ),
+        *ROOT.joinpath("dashboard").glob("*.config.ts"),
     ]
 )
 

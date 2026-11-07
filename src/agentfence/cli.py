@@ -862,11 +862,12 @@ def ui_command(
         typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
     ] = None,
 ) -> None:
-    """Serve the read-only local API on a loopback address. Needs the 'ui' extra.
+    """Serve the read-only dashboard and API on loopback.
 
-    Prints a random session token; every request must send it as a bearer token. Requests
-    for another host name or from another origin are refused. Nothing can be launched or
-    changed through the API. Stop with Ctrl-C.
+    Needs the 'ui' extra. Prints the dashboard URL with a random session token in its
+    fragment; API requests must send that token as a bearer token. Requests for another
+    host name or from another origin are refused. Nothing can be launched or changed.
+    Stop with Ctrl-C.
     """
     configured = _load_config(config).config.ui
     try:
@@ -892,9 +893,13 @@ def ui_command(
     token = secrets.token_urlsafe(32)
     bound = f"[{ui.listen}]" if ":" in ui.listen else ui.listen
     typer.echo(
-        f"AgentFence Lab local API (read-only): http://{bound}:{ui.port}/api/v1/health", err=True
+        f"AgentFence Lab dashboard (read-only): http://{bound}:{ui.port}/#token={token}", err=True
     )
-    typer.echo(f"Session token (send as 'Authorization: Bearer <token>'): {token}", err=True)
+    typer.echo(
+        "The token is in the URL fragment, which the browser never sends to a server. API "
+        "clients send it as 'Authorization: Bearer <token>'. Stop with Ctrl-C.",
+        err=True,
+    )
     uvicorn.run(
         create_app(paths, token=token, port=ui.port, listen=ui.listen),
         host=ui.listen,

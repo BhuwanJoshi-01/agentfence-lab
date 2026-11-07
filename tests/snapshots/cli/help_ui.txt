@@ -1,10 +1,11 @@
 Usage: agentfence ui [OPTIONS]
 
-  Serve the read-only local API on a loopback address. Needs the 'ui' extra.
+  Serve the read-only dashboard and API on loopback.
 
-  Prints a random session token; every request must send it as a bearer token.
-  Requests for another host name or from another origin are refused. Nothing can
-  be launched or changed through the API. Stop with Ctrl-C.
+  Needs the 'ui' extra. Prints the dashboard URL with a random session token in
+  its fragment; API requests must send that token as a bearer token. Requests
+  for another host name or from another origin are refused. Nothing can be
+  launched or changed. Stop with Ctrl-C.
 
 Options:
   --host <str>     Loopback address (default: ui.listen).
