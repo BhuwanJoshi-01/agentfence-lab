@@ -68,6 +68,9 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- Untrusted manifest titles, task descriptions and pack file names can no longer inject
+  terminal escape sequences or bidi/zero-width characters into CLI output: the schema
+  rejects them and human output is scrubbed. (#86)
 - Event details now reject any host path (absolute POSIX, `~`, Windows drive or UNC,
   `file:` URIs, embedded host directories), not only home-directory prefixes. (#87)
 

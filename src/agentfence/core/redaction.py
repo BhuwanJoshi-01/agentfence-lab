@@ -47,6 +47,9 @@ _USER_HOME = re.compile(r"(?:/home|/Users)/[^/\s:'\"]+")
 # and C1 controls. Prevents terminal injection from untrusted fixture or agent text.
 _ANSI = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)?|[@-Z\\-_])")
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+# Invisible formatting characters: zero-width, bidi embeddings/overrides/isolates, BOM.
+# They can make displayed text differ from its bytes ("Trojan Source").
+_FORMAT = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]")
 
 
 def _credential_sub(match: re.Match[str]) -> str:
@@ -59,6 +62,7 @@ def scrub_text(text: str, *, home: str | None = None) -> str:
     """Return ``text`` with secrets, home paths and control sequences removed."""
     out = _ANSI.sub("", text)
     out = _CONTROL.sub("", out)
+    out = _FORMAT.sub("", out)
     out = _PEM_BLOCK.sub(CREDENTIAL_ALIAS, out)
     out = _SYNTHETIC_MARKER.sub(SYNTHETIC_SECRET_ALIAS, out)
     for pattern in _CREDENTIAL_PATTERNS:
