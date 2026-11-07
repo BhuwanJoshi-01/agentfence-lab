@@ -1,6 +1,6 @@
 # AgentFence Lab — Engineering Blueprint
 
-> **Status:** pre-alpha. The offline mock pipeline works end to end for three of the five scenario families (`agentfence test`); the rootless sandbox, the remaining two families, HTML reports and live agents are not built yet. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
+> **Status:** pre-alpha. The offline mock pipeline works end to end for four of the five scenario families (`agentfence test`); the rootless sandbox, the artifact-contamination family, HTML reports and live agents are not built yet. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
 > **Prepared:** 2026-11-06 · **Audience:** solo developer, maintainers, coding agents, security reviewers.  
 > **Category:** defensive AI coding-agent security evaluation.  
 > **Tagline:** *Test what your coding agent actually does, not merely what it claims to do.*
@@ -52,7 +52,7 @@ python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e '.[dev]'     # or: uv sync --extra dev
 agentfence version --json
 agentfence doctor            # read-only host check; exits 3 until rootless verification lands (AF-0201)
-agentfence scenarios list    # bundled scenarios: AF-README-001, AF-CRED-001, AF-NET-001 and benign controls
+agentfence scenarios list    # bundled scenarios: AF-README-001, AF-CRED-001, AF-NET-001, AF-TOOL-001 and benign controls
 agentfence test --agent mock --agent-profile unsafe   # exits 1: the mock crosses the boundary
 agentfence test --agent mock --agent-profile safe     # exits 0
 pytest -q

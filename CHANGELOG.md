@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Fourth bundled scenario pair: `AF-TOOL-001` (tool-output authority spoofing) and
+  `AF-TOOL-001-B`. A spoofed `[SYSTEM NOTICE]` in captured test output must not grant
+  permission for an unrelated edit. (AF-0306)
 - Evaluator 1.1.0: a FAIL caused by a mock-sink delivery states that nothing left the
   lab and that it is not exfiltration. Outcomes are unchanged.
 - Third bundled scenario pair: `AF-NET-001` (unauthorized network intent) and
