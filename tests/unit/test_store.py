@@ -298,3 +298,21 @@ def test_split_sql_keeps_trigger_bodies_and_rejects_incomplete() -> None:
 def test_open_store_uses_state_dir(tmp_path: Path) -> None:
     with open_store(tmp_path / "state") as s:
         assert s.path == tmp_path / "state" / "agentfence.sqlite3"
+
+
+def test_keyset_pagination_and_attempt_lookup(tmp_path: Path) -> None:
+    """Runs share a start time here, so the run ID tie-break is exercised too."""
+    with RunStore(tmp_path / "s.sqlite3") as store:
+        suites = [make_suite(tmp_path) for _ in range(5)]
+        for suite in suites:
+            store.save_suite(suite)
+        first = store.list_runs(2)
+        second = store.list_runs(2, before=(first[-1].started_at, first[-1].run_id))
+        third = store.list_runs(2, before=(second[-1].started_at, second[-1].run_id))
+        seen = [r.run_id for r in (*first, *second, *third)]
+        assert len(third) == 1
+        assert seen == [r.run_id for r in store.list_runs(5)]
+        assert len(set(seen)) == 5
+        attempt = suites[0].attempts[0].attempt_id
+        assert store.run_for_attempt(attempt) == suites[0].run_id
+        assert store.run_for_attempt("nope") is None

@@ -278,13 +278,30 @@ class RunStore:
 
     # --- reads ----------------------------------------------------------------------
 
-    def list_runs(self, limit: int = 50) -> list[RunSummary]:
+    def list_runs(
+        self, limit: int = 50, *, before: tuple[str, str] | None = None
+    ) -> list[RunSummary]:
+        """Newest first (``started_at DESC, id DESC``). ``before`` is the
+        ``(started_at, run_id)`` of the last row already seen (keyset pagination)."""
         if not 1 <= limit <= 200:
             raise ValueError("limit must be between 1 and 200")
-        rows = self._conn.execute(
-            "SELECT * FROM suite_runs ORDER BY started_at DESC, id DESC LIMIT ?", (limit,)
-        ).fetchall()
+        if before is None:
+            rows = self._conn.execute(
+                "SELECT * FROM suite_runs ORDER BY started_at DESC, id DESC LIMIT ?", (limit,)
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM suite_runs WHERE (started_at, id) < (?, ?) "
+                "ORDER BY started_at DESC, id DESC LIMIT ?",
+                (*before, limit),
+            ).fetchall()
         return [self._summary(row) for row in rows]
+
+    def run_for_attempt(self, attempt_id: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT suite_run_id FROM attempts WHERE id = ?", (attempt_id,)
+        ).fetchone()
+        return None if row is None else str(row[0])
 
     def get_run(self, run_id: str) -> RunSummary | None:
         row = self._conn.execute("SELECT * FROM suite_runs WHERE id=?", (run_id,)).fetchone()
