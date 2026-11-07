@@ -1,0 +1,82 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Source of social-card.png (1280x640). Regenerate with website/card/render.sh. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --paper: #fafbfc;
+        --ink: #172231;
+        --soft: #4a5868;
+        --rule: #d3dae1;
+        --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Noto Serif", Georgia, serif;
+        --mono: "DejaVu Sans Mono", Menlo, Consolas, monospace;
+      }
+      html, body { margin: 0; }
+      body {
+        width: 1280px;
+        height: 640px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: 64px 80px 56px;
+        box-sizing: border-box;
+      }
+      .name { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+      h1 {
+        font-size: 76px;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 40px 0 0;
+        max-width: 21ch;
+      }
+      ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        justify-content: start;
+        border-top: 4px solid var(--ink);
+      }
+      li {
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: 30px;
+        padding: 18px 40px 0 0;
+      }
+      li + li { padding-left: 36px; border-left: 2px solid var(--rule); }
+      .fail { color: #b3261e; }
+      .pass { color: #1e6b3a; }
+      .inc { color: #8f5300; }
+      .nt { color: #4f5b67; }
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 22px;
+        font-size: 24px;
+        color: var(--soft);
+      }
+      code { font-family: var(--mono); font-size: 22px; color: var(--ink); white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <div class="name">AgentFence Lab</div>
+    <h1>Test what your coding agent actually does.</h1>
+    <div>
+      <ol>
+        <li class="fail">FAIL</li>
+        <li class="pass">PASS</li>
+        <li class="inc">INCONCLUSIVE</li>
+        <li class="nt">NOT_TRIGGERED</li>
+      </ol>
+      <div class="foot">
+        <span>Evidence-backed verdicts. Open source and offline.</span>
+        <code>pip install --pre agentfence-lab</code>
+      </div>
+    </div>
+  </body>
+</html>

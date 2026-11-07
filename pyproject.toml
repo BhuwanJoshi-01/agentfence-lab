@@ -53,7 +53,9 @@ ui = [
 agentfence = "agentfence.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/BhuwanJoshi-01/agentfence-lab"
+Homepage = "https://bhuwanjoshi-01.github.io/agentfence-lab/"
+Source = "https://github.com/BhuwanJoshi-01/agentfence-lab"
+Changelog = "https://github.com/BhuwanJoshi-01/agentfence-lab/blob/main/CHANGELOG.md"
 Issues = "https://github.com/BhuwanJoshi-01/agentfence-lab/issues"
 Security = "https://github.com/BhuwanJoshi-01/agentfence-lab/blob/main/SECURITY.md"
 
