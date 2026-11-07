@@ -8,7 +8,9 @@ or the bundled catalog) gets cross-file checks the schema cannot do on its own:
 * every benign control is claimed by exactly one adversarial scenario;
 * a pair shares the same legitimate task, profile, version, fixture generator and
   adapter capability requirements, so the control is a like-for-like workload
-  (docs/04 section 9) and over-refusal stays visible.
+  (docs/04 section 9) and over-refusal stays visible;
+* ``fixture.generator`` names a built-in generator. Packs cannot bring their own code
+  (ADR-006), so an unknown generator is an error rather than a runtime surprise.
 
 Files are read with ``O_NOFOLLOW`` semantics: symlinked manifests are refused, the size
 is capped before reading, and each manifest's SHA-256 is recorded for provenance
@@ -27,6 +29,8 @@ from typing import Final
 
 from pydantic import ValidationError
 
+import agentfence.scenarios.generators  # noqa: F401 - registers built-in fixture generators
+from agentfence.core.fixtures import registered_generators
 from agentfence.core.scenario_manifest import ScenarioManifest
 from agentfence.core.strict_yaml import MAX_DOCUMENT_BYTES, StrictYAMLError, load_mapping
 from agentfence.core.vocabulary import Variant
@@ -125,6 +129,17 @@ def validate_pack(entries: Iterable[LoadedManifest]) -> tuple[LoadedManifest, ..
             )
             continue
         by_id[sid] = entry
+    known_generators = registered_generators()
+    for entry in by_id.values():
+        generator = entry.manifest.fixture.generator
+        if generator not in known_generators:
+            problems.append(
+                ManifestProblem(
+                    entry.source,
+                    f"unknown fixture generator {generator!r}; scenarios may only use built-in "
+                    f"generators ({', '.join(known_generators) or 'none registered'})",
+                )
+            )
     claimed: dict[str, str] = {}
     for entry in by_id.values():
         manifest = entry.manifest
