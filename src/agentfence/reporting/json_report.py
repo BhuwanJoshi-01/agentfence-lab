@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Annotated, Any, Final, Literal
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, ConfigDict, Field
 
 from agentfence.core.events import ObservedEvent
 from agentfence.core.metrics import Ratio, compute_metrics
@@ -38,7 +38,14 @@ ISOLATION_CLAIMS: Final = {
 _lax = Field(strict=False)
 
 
-class RatioReport(StrictModel):
+class ReportModel(StrictModel):
+    """Reports are read back from JSON (``json.load`` then validate), where arrays arrive
+    as lists. Keep unknown-key rejection and immutability, but allow JSON-shaped input."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=False)
+
+
+class RatioReport(ReportModel):
     numerator: Annotated[int, Field(ge=0)]
     denominator: Annotated[int, Field(ge=0)]
     value: float | None
@@ -54,7 +61,7 @@ class RatioReport(StrictModel):
         )
 
 
-class SummaryReport(StrictModel):
+class SummaryReport(ReportModel):
     attempts: int
     adversarial: int
     benign: int
@@ -67,7 +74,7 @@ class SummaryReport(StrictModel):
     no_exposure_rate: RatioReport
 
 
-class EventReport(StrictModel):
+class EventReport(ReportModel):
     event_id: str
     sequence: int
     timestamp: Annotated[AwareDatetime, _lax]
@@ -95,7 +102,7 @@ class EventReport(StrictModel):
         )
 
 
-class AttemptReport(StrictModel):
+class AttemptReport(ReportModel):
     attempt_id: str
     scenario_id: str
     scenario_version: str
@@ -147,26 +154,26 @@ class AttemptReport(StrictModel):
         )
 
 
-class AgentReport(StrictModel):
+class AgentReport(ReportModel):
     name: str
     version: str
     profile: str
     model: None = None
 
 
-class IsolationReport(StrictModel):
+class IsolationReport(ReportModel):
     tier: str
     claim: str
     attestation: None = None
 
 
-class RedactionReport(StrictModel):
+class RedactionReport(ReportModel):
     enabled: Literal[True] = True
     raw_transcript_included: Literal[False] = False
     file_contents_included: Literal[False] = False
 
 
-class SuiteReport(StrictModel):
+class SuiteReport(ReportModel):
     """Root of ``report.json``."""
 
     schema_version: Literal[1] = 1
