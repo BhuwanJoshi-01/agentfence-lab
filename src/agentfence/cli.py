@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import platform
+import secrets
 import sys
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -20,6 +21,7 @@ from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import typer
+from pydantic import ValidationError
 
 from agentfence import __version__
 from agentfence.adapters.mock import MockProfile
@@ -30,6 +32,7 @@ from agentfence.core.config import (
     ConfigLayer,
     ConfigSource,
     ResolvedConfig,
+    UIConfig,
     resolve_config,
 )
 from agentfence.core.redaction import scrub_text
@@ -704,6 +707,61 @@ def cleanup_command(
         f"folder(s) and {len(stale.removed)} stale workspace(s)."
     )
     typer.echo("Copies in backups or filesystem snapshots outside AgentFence are not affected.")
+
+
+@app.command("ui")
+def ui_command(
+    host: Annotated[
+        str | None, typer.Option("--host", help="Loopback address (default: ui.listen).")
+    ] = None,
+    port: Annotated[int | None, typer.Option("--port", help="Port (default: ui.port).")] = None,
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
+    ] = None,
+) -> None:
+    """Serve the read-only local API on a loopback address. Needs the 'ui' extra.
+
+    Prints a random session token; every request must send it as a bearer token. Requests
+    for another host name or from another origin are refused. Nothing can be launched or
+    changed through the API. Stop with Ctrl-C.
+    """
+    configured = _load_config(config).config.ui
+    try:
+        ui = UIConfig(
+            listen=host if host is not None else configured.listen,
+            port=port if port is not None else configured.port,
+        )
+    except ValidationError as exc:
+        _fail(f"invalid --host or --port: {exc.errors()[0]['msg']}", ExitCode.USAGE_ERROR)
+    try:
+        import uvicorn  # noqa: PLC0415 - optional 'ui' extra
+
+        from agentfence.api.app import create_app  # noqa: PLC0415
+    except ImportError:
+        _fail(
+            "the local API needs the 'ui' extra: pip install 'agentfence-lab[ui]'",
+            ExitCode.USAGE_ERROR,
+        )
+    try:
+        paths = resolve_paths()
+    except PathConfigError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    token = secrets.token_urlsafe(32)
+    bound = f"[{ui.listen}]" if ":" in ui.listen else ui.listen
+    typer.echo(
+        f"AgentFence Lab local API (read-only): http://{bound}:{ui.port}/api/v1/health", err=True
+    )
+    typer.echo(f"Session token (send as 'Authorization: Bearer <token>'): {token}", err=True)
+    uvicorn.run(
+        create_app(paths, token=token, port=ui.port, listen=ui.listen),
+        host=ui.listen,
+        port=ui.port,
+        log_level="warning",
+        access_log=False,
+        server_header=False,
+        proxy_headers=False,
+    )
 
 
 class ReportFormat(StrEnum):
