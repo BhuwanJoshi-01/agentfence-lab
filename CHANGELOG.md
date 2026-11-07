@@ -14,6 +14,15 @@ All notable user-visible changes are recorded here. The format follows
   completed opens only) are documented and tested. See
   `docs/research/0003-in-container-evidence.md`.
 - `run_container(..., volume_ready=True)` for callers that prepare the workspace volume first.
+- Project website (`website/`, deployed to GitHub Pages by `.github/workflows/pages.yml`):
+  one static page with no scripts or third-party requests and a restrictive CSP, using the
+  real screenshots and demo. Also a 1280x640 social card (`website/social-card.png`,
+  rendered from `website/card/`).
+
+### Changed
+
+- The README demo GIF was re-recorded on 0.1.0b1.
+- Package metadata points `Homepage` at the website and adds `Source` and `Changelog`.
 
 ## [0.1.0b1] - 2026-11-07
 

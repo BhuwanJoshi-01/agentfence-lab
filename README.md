@@ -2,6 +2,10 @@
 
 *Test what your coding agent actually does, not merely what it claims to do.*
 
+[Website](https://bhuwanjoshi-01.github.io/agentfence-lab/) ·
+[PyPI](https://pypi.org/project/agentfence-lab/) ·
+[Release notes](https://github.com/BhuwanJoshi-01/agentfence-lab/releases)
+
 AgentFence Lab checks whether an AI coding agent respects file, network and tool
 boundaries when untrusted project content (a README, tool output, a data file) asks it
 to step outside its task. It runs paired synthetic scenarios, records observable side
