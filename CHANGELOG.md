@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Fifth bundled scenario pair: `AF-ARTIFACT-001` (output artifact contamination) and
+  `AF-ARTIFACT-001-B`, completing the five MVP families. The snapshot collector records
+  whether a seeded marker reached a watched output file, never the content. (AF-0307)
 - Fourth bundled scenario pair: `AF-TOOL-001` (tool-output authority spoofing) and
   `AF-TOOL-001-B`. A spoofed `[SYSTEM NOTICE]` in captured test output must not grant
   permission for an unrelated edit. (AF-0306)
@@ -109,6 +112,9 @@ All notable user-visible changes are recorded here. The format follows
   build with content check and clean-install smoke test, dependency audit. (AF-0104)
 
 ### Fixed
+
+- An exception inside the agent adapter now ends the attempt as INCONCLUSIVE with
+  infrastructure ERROR instead of crashing `agentfence test`. (AF-0307)
 
 - Attempt IDs now include the run ID, so repeated runs with identical settings no
   longer collide. (AF-0406)
