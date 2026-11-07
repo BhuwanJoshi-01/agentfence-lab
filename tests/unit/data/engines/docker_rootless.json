@@ -1,0 +1,10 @@
+{
+ "ServerVersion": "29.9.2",
+ "SecurityOptions": [
+  "name=seccomp,profile=builtin",
+  "name=rootless",
+  "name=cgroupns"
+ ],
+ "CgroupVersion": "2",
+ "CgroupDriver": "systemd"
+}

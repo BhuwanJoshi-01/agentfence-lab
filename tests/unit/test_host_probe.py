@@ -25,9 +25,14 @@ def status(facts: HostFacts, check_id: str) -> CheckStatus:
     return next(c.status for c in assess_host(facts).checks if c.id == check_id)
 
 
-def test_good_host_still_unsupported_until_rootless_verification_exists() -> None:
+def test_host_without_engine_or_kernel_facts_is_unsupported() -> None:
     caps = assess_host(GOOD)
-    assert [c.id for c in caps.blocking_checks] == ["runtime.rootless"]
+    assert [c.id for c in caps.blocking_checks] == [
+        "runtime.rootless",
+        "runtime.seccomp",
+        "cgroup.delegation",
+        "userns.available",
+    ]
     assert caps.isolation_state is IsolationState.UNSUPPORTED
     assert status(GOOD, "runtime.rootless") is CheckStatus.UNKNOWN
 

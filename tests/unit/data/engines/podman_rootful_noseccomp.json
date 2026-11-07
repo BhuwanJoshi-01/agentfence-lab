@@ -1,0 +1,12 @@
+{
+ "host": {
+  "security": {
+   "rootless": false,
+   "seccompEnabled": false
+  },
+  "cgroupVersion": "v2"
+ },
+ "version": {
+  "Version": "5.6.1"
+ }
+}

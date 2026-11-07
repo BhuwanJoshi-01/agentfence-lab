@@ -67,7 +67,8 @@ def test_doctor_json_is_single_document(runner: CliRunner) -> None:
     assert result.exit_code == 3
     payload = json.loads(result.stdout)
     assert payload["isolation_state"] == "UNSUPPORTED"
-    assert payload["blocking_checks"] == ["runtime.rootless"]
+    assert payload["blocking_checks"][0] == "runtime.rootless"
+    assert "cgroup.delegation" in payload["blocking_checks"]
     assert payload["exit_code"] == 3
     assert payload["host"]["os"] == "linux"
     assert {c["id"] for c in payload["host"]["checks"]} >= {"platform.os", "cgroup.v2"}

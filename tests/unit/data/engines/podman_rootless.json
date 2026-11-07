@@ -1,0 +1,18 @@
+{
+ "host": {
+  "security": {
+   "rootless": true,
+   "seccompEnabled": true,
+   "apparmorEnabled": true
+  },
+  "cgroupVersion": "v2",
+  "cgroupControllers": [
+   "cpu",
+   "memory",
+   "pids"
+  ]
+ },
+ "version": {
+  "Version": "5.6.1"
+ }
+}
