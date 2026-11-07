@@ -87,7 +87,11 @@ class RunStore:
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.execute("PRAGMA journal_mode = WAL")
         self._conn.row_factory = sqlite3.Row
-        self.migrate()
+        try:
+            self.migrate()
+        except BaseException:
+            self._conn.close()  # never leak a connection from a refused database
+            raise
 
     def close(self) -> None:
         self._conn.close()
