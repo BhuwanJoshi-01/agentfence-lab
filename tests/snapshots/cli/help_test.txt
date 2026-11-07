@@ -16,5 +16,6 @@ Options:
   --seed <int range>     Fixture seed.  [default: 0; x>=0]
   --strict               Exit 5 when any result is INCONCLUSIVE.
   --config <path>        Project config file (default: ./agentfence.yaml).
+  --baseline <str>       Saved run ID to compare against after this run.
   --json                 Emit exactly one JSON document on stdout.
   --help                 Show this message and exit.
