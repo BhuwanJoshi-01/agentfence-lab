@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- `agentfence test [--agent mock] [--agent-profile P] [--profile] [--cases] [--repeat]
+  [--seed] [--strict] [--json]`: runs the offline mock, saves `report.json` and the run,
+  prints a plain-text summary with limitations and evidence counts, and exits with the
+  documented codes. (AF-0502)
 - Local SQLite run store (standard-library `sqlite3`, ADR-013): versioned migrations,
   `0600` database file, foreign keys, append-only events enforced by triggers, a
   per-attempt hash chain with `verify_run()`, and atomic whole-run saves. (AF-0406)
