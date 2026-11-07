@@ -9,7 +9,7 @@ description = "Evidence-first, offline-first security regression testing for AI 
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "AgentFence Lab contributors" }]
 keywords = ["ai-security", "coding-agents", "prompt-injection", "security-testing", "sandbox"]
 classifiers = [
@@ -57,7 +57,7 @@ path = "src/agentfence/__init__.py"
 packages = ["src/agentfence"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "docs/", "README.md", "LICENSE", "CHANGELOG.md", "SECURITY.md"]
+include = ["src/", "tests/", "docs/", "README.md", "LICENSE", "NOTICE", "CHANGELOG.md", "SECURITY.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
