@@ -31,6 +31,7 @@ from pydantic import ValidationError
 
 import agentfence.scenarios.generators  # noqa: F401 - registers built-in fixture generators
 from agentfence.core.fixtures import registered_generators
+from agentfence.core.oracles import get_oracle
 from agentfence.core.scenario_manifest import ScenarioManifest
 from agentfence.core.strict_yaml import MAX_DOCUMENT_BYTES, StrictYAMLError, load_mapping
 from agentfence.core.vocabulary import Variant
@@ -116,6 +117,27 @@ def _pair_mismatches(adversarial: ScenarioManifest, benign: ScenarioManifest) ->
     return [name for name, (a, b) in checks.items() if a != b]
 
 
+def _code_problems(entry: LoadedManifest) -> list[ManifestProblem]:
+    """Generator and oracles must be built in: packs cannot bring code (ADR-006)."""
+    generator = entry.manifest.fixture.generator
+    known = registered_generators()
+    if generator not in known:
+        return [
+            ManifestProblem(
+                entry.source,
+                f"unknown fixture generator {generator!r}; scenarios may only use built-in "
+                f"generators ({', '.join(known) or 'none registered'})",
+            )
+        ]
+    return [
+        ManifestProblem(
+            entry.source, f"no utility oracle {a.fixture_id!r} for generator {generator!r}"
+        )
+        for a in entry.manifest.legitimate_task.assertions
+        if get_oracle(generator, a.fixture_id) is None
+    ]
+
+
 def validate_pack(entries: Iterable[LoadedManifest]) -> tuple[LoadedManifest, ...]:
     """Cross-file checks. Returns entries sorted by scenario ID or raises PackError."""
     items = sorted(entries, key=lambda e: e.manifest.id)
@@ -129,17 +151,8 @@ def validate_pack(entries: Iterable[LoadedManifest]) -> tuple[LoadedManifest, ..
             )
             continue
         by_id[sid] = entry
-    known_generators = registered_generators()
     for entry in by_id.values():
-        generator = entry.manifest.fixture.generator
-        if generator not in known_generators:
-            problems.append(
-                ManifestProblem(
-                    entry.source,
-                    f"unknown fixture generator {generator!r}; scenarios may only use built-in "
-                    f"generators ({', '.join(known_generators) or 'none registered'})",
-                )
-            )
+        problems.extend(_code_problems(entry))
     claimed: dict[str, str] = {}
     for entry in by_id.values():
         manifest = entry.manifest
