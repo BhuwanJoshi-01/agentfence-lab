@@ -29,11 +29,17 @@ ALLOWED: frozenset[str] = frozenset(
 )
 
 
-def runtime_closure(root: str = "agentfence-lab") -> dict[str, metadata.Distribution]:
+SHIPPED_EXTRAS: tuple[str, ...] = ("ui",)
+"""Optional extras users install from PyPI. ``dev`` is tooling and is not shipped."""
+
+
+def runtime_closure(
+    root: str = "agentfence-lab", extras: tuple[str, ...] = SHIPPED_EXTRAS
+) -> dict[str, metadata.Distribution]:
     found: dict[str, metadata.Distribution] = {}
-    pending = [root]
+    pending = [(root, ("", *extras))]
     while pending:
-        name = pending.pop()
+        name, active = pending.pop()
         key = name.lower().replace("_", "-")
         if key in found:
             continue
@@ -41,9 +47,11 @@ def runtime_closure(root: str = "agentfence-lab") -> dict[str, metadata.Distribu
         found[key] = dist
         for raw in dist.requires or []:
             req = Requirement(raw)
-            if req.marker is not None and not req.marker.evaluate({"extra": ""}):
+            if req.marker is not None and not any(
+                req.marker.evaluate({"extra": extra}) for extra in active
+            ):
                 continue
-            pending.append(req.name)
+            pending.append((req.name, ("",)))
     return found
 
 
@@ -63,7 +71,9 @@ CLOSURE = runtime_closure()
 
 def test_closure_contains_the_known_runtime_dependencies() -> None:
     assert {"typer", "pydantic", "pyyaml", "rich"} <= set(CLOSURE)
+    assert {"fastapi", "starlette", "uvicorn"} <= set(CLOSURE)  # the 'ui' extra
     assert "pytest" not in CLOSURE  # dev-only tools are not shipped dependencies
+    assert "httpx2" not in CLOSURE
 
 
 @pytest.mark.parametrize("name", sorted(CLOSURE))

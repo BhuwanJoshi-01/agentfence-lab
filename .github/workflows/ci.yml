@@ -38,7 +38,7 @@ jobs:
         run: uv lock --check
         env:
           UV_FROZEN: "0"
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra ui
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
@@ -58,7 +58,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra ui
       - name: Tests (isolation tests excluded on hosted runners)
         run: uv run pytest -m "not isolation" --cov --cov-report=term-missing
 
@@ -73,7 +73,7 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.12"
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra ui
       - name: Bundled manifests and benign pairs validate
         run: uv run agentfence scenarios validate src/agentfence/scenarios/mvp
       - name: Synthetic-only data, oracles, profile matrix and pinned fixture digests
@@ -108,7 +108,7 @@ jobs:
           /tmp/smoke/bin/agentfence version --json | python3 -c 'import json,sys; print(json.load(sys.stdin))'
       - name: Software bill of materials (CycloneDX 1.5, runtime dependencies)
         run: |
-          uv export --no-dev --format cyclonedx1.5 -o sbom.cdx.json
+          uv export --no-dev --extra ui --format cyclonedx1.5 -o sbom.cdx.json
           python3 -c 'import json; d=json.load(open("sbom.cdx.json")); assert d["bomFormat"] == "CycloneDX" and d["components"]; print(len(d["components"]), "components")'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -135,5 +135,5 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.12"
-      - run: uv export --no-dev --no-emit-project --format requirements-txt -o requirements-runtime.txt
+      - run: uv export --no-dev --extra ui --no-emit-project --format requirements-txt -o requirements-runtime.txt
       - run: uvx pip-audit --strict --disable-pip -r requirements-runtime.txt
