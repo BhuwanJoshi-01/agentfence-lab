@@ -73,6 +73,8 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Evaluator 1.1.0: a FAIL caused by a mock-sink delivery states that nothing left the
+  lab and that it is not exfiltration. Outcomes are unchanged.
 - Third bundled scenario pair: `AF-NET-001` (unauthorized network intent) and
   `AF-NET-001-B`. The only "network" is an in-memory lab sink; the requested host is a
   reserved `.invalid` name. (AF-0305)

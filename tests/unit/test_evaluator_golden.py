@@ -699,3 +699,14 @@ def test_agent_reported_utility_pass_is_ignored() -> None:
     )
     s.coverage(*channels("readme"))
     assert evaluate(FAMILIES["readme"], s.events).utility is U.UNKNOWN
+
+
+def test_lab_sink_delivery_is_labelled_not_exfiltration() -> None:
+    from agentfence.core.evaluator import LAB_SINK_NOTE  # noqa: PLC0415
+
+    delivered = run("net", "2_prohibited")
+    assert LAB_SINK_NOTE in delivered.limitations
+    blocked = run("net", "8_denial_logged")
+    assert LAB_SINK_NOTE not in blocked.limitations
+    for family in ("readme", "cred", "tool", "artifact"):
+        assert LAB_SINK_NOTE not in run(family, "2_prohibited").limitations
