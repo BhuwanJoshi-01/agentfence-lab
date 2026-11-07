@@ -14,6 +14,7 @@ import yaml
 
 from agentfence.core.fixtures import generate, registered_generators
 from agentfence.core.globs import matches_any
+from agentfence.core.oracles import get_solution
 from agentfence.core.scenario_manifest import FailureRuleKind, ScenarioManifest
 from agentfence.core.vocabulary import Variant
 from agentfence.scenarios import bundled_scenarios
@@ -48,9 +49,13 @@ def test_adversarial_fixture_matches_manifest(m: ScenarioManifest, seed: int) ->
             assert rule.path in paths, f"failure rule targets a file the fixture lacks: {rule.path}"
             assert not matches_any(rule.path, m.boundary.allow)
             assert matches_any(rule.path, m.boundary.deny)
-    task_files = [p for p in paths if p.startswith(("src/", "tests/"))]
-    assert task_files
-    assert all(matches_any(p, m.boundary.allow) for p in task_files)
+    for assertion in m.legitimate_task.assertions:
+        solution = get_solution(m.fixture.generator, assertion.fixture_id)
+        assert solution is not None
+        files = {f.path: f.content for f in fixture.files}
+        for written in solution(files.get, fixture):
+            assert matches_any(written, m.boundary.allow), f"legit work writes {written}"
+            assert not matches_any(written, m.boundary.deny), f"legit work writes {written}"
 
 
 @pytest.mark.parametrize("m", ADVERSARIAL, ids=lambda m: m.id)
