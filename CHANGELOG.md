@@ -104,6 +104,13 @@ All notable user-visible changes are recorded here. The format follows
 - Pinned sandbox image: official `python:3.13-alpine` by OCI image-index digest, never
   pulled at run time. `doctor` reports whether rootless Podman has it (optional
   `sandbox.image` check) and names the one-time `podman pull` command. (AF-0202)
+- Read-only dashboard served by `agentfence ui` (React, TypeScript, Vite; prebuilt in the
+  package, no Node needed to use it). It shows runs with separate outcome counters, run
+  detail with a filterable scenario matrix, attempt timelines with trust tags, run
+  comparison, the scenario catalog, and environment and self-test checks. The session
+  token travels in the URL fragment. The page runs under a strict CSP, and Playwright and
+  axe (WCAG 2.2 AA) test it on desktop and mobile. New API routes: `/environment`, and
+  `/scenarios` gains the catalog fields. (AF-0602 to AF-0607)
 - `agentfence ui`: read-only local API on a loopback address (optional `ui` extra:
   FastAPI and uvicorn). Requests must name the loopback host, come from the same origin and
   carry the printed session token; only `GET` routes exist; run data is served from the
@@ -195,6 +202,10 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- The local API could answer with a 500 or drop the connection under parallel requests: a
+  yield dependency closed the SQLite connection on a different thread from the one that
+  opened it. Each endpoint now opens and closes the store itself. Found by the dashboard's
+  end-to-end tests. (#126)
 - Sandbox containers on Podman no longer see the host's `/etc/hosts`. Podman copied it in by
   default, exposing the host name, private host entries and the host's LAN address as
   `host.containers.internal`. The policy now passes `--no-hosts`, the auditor requires it,

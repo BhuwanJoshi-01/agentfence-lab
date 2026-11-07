@@ -29,6 +29,19 @@ git diff tests/snapshots/
 
 These are the same checks CI runs on every pull request (`.github/workflows/ci.yml`). Tests marked `isolation` need a verified rootless runtime on a trusted runner; they are skipped on hosted CI and on hosts without that capability, and a skip is never counted as a pass.
 
+To work on the dashboard (`dashboard/`, Node 22 or newer), use the lockfile and commit the
+rebuilt files under `src/agentfence/api/static/`. CI fails when they differ from a fresh
+build:
+
+```bash
+cd dashboard
+npm ci --ignore-scripts
+npm run typecheck && npm test        # TypeScript and component tests
+npm run build                        # writes ../src/agentfence/api/static/
+npx playwright install chromium
+npm run e2e                          # real `agentfence ui`, desktop and mobile, axe
+```
+
 To run the isolation tests yourself you need rootless Podman, a host where `agentfence doctor` passes every required check, and the pinned image (`doctor` prints the one-time `podman pull` command). They start real containers and take about a minute:
 
 ```bash
