@@ -26,3 +26,8 @@ htmlcov/
 .vscode/
 *.swp
 .DS_Store
+
+# dashboard (Node toolchain; the built files under src/agentfence/api/static are committed)
+dashboard/node_modules/
+dashboard/test-results/
+dashboard/playwright-report/
