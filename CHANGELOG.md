@@ -73,6 +73,8 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- Community files: Contributor Covenant code of conduct, an updated SECURITY.md with
+  private vulnerability reporting (enabled), and structured issue forms. (AF-0705)
 - Licensing: ADR-014 (Apache-2.0 for code and synthetic data), `NOTICE`, SPDX headers on
   every source file, and a contribution copyright policy. (AF-0704)
 - `agentfence doctor` now verifies the runtime: rootless mode from each engine's own

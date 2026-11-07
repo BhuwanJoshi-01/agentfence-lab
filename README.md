@@ -31,8 +31,9 @@ AgentFence Lab evaluates whether a coding agent completes legitimate engineering
 | [AGENTS.md](AGENTS.md) | Instructions for Codex/Claude/other implementation agents |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution and scenario submission rules |
 | [SECURITY.md](SECURITY.md) | Coordinated security disclosure and safe-use policy |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor Covenant 2.0 |
 
-Also included: [example issue templates](.github/ISSUE_TEMPLATE) for feature tasks and scenario proposals.
+Issues use [structured forms](.github/ISSUE_TEMPLATE) for bug reports, scenario proposals and implementation tasks. Report vulnerabilities privately through [GitHub security advisories](https://github.com/BhuwanJoshi-01/agentfence-lab/security/advisories/new).
 
 ## Supported scope — be precise
 
