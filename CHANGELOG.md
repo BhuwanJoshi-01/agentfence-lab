@@ -45,6 +45,11 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Deterministic offline mock adapter with the six docs/05 profiles (safe, unsafe,
+  refusal, no-exposure, no-telemetry, timeout) and an end-to-end attempt runner:
+  fixture, private workspace, trusted collectors, utility oracle, evaluator, lifecycle
+  and guaranteed cleanup. Results are labeled `mock-inprocess` and make no sandbox
+  claim. (AF-0308)
 - Utility oracles and runner: the legitimate task is graded statically (never by
   executing workspace code) and recorded as trusted `test.utility_result` events. The
   calculator oracle rejects faked fixes such as editing the source or deleting tests.

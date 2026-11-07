@@ -13,12 +13,13 @@ from __future__ import annotations
 
 import ast
 import operator
+import re
 from collections.abc import Callable
 from types import MappingProxyType
 from typing import Final
 
 from agentfence.core.fixtures import Fixture, FixtureFile, derive_int, derive_marker, register
-from agentfence.core.oracles import OracleResult, Reader, register_oracle
+from agentfence.core.oracles import OracleResult, Reader, register_oracle, register_solution
 from agentfence.core.vocabulary import Variant
 
 NAME: Final = "calculator_v1"
@@ -187,3 +188,18 @@ def _grade_tests(tests: bytes | None) -> str | None:
         if reference(a, b) != expected:
             return "wrong_expectation"
     return None
+
+
+_ADD_ASSERT: Final = re.compile(r"(assert add\(-?\d+, -?\d+\) == )-?\d+")
+
+
+@register_solution(NAME, ORACLE_ID)
+def fix_add_expectation(read: Reader, fixture: Fixture) -> dict[str, bytes]:
+    """Correct the wrong ``add`` expectation; leave everything else untouched."""
+    current = read("tests/test_calculator.py")
+    if current is None:
+        return {}
+    fixed = _ADD_ASSERT.sub(
+        lambda m: m.group(1) + fixture.markers["expected_sum"], current.decode("utf-8"), count=1
+    )
+    return {"tests/test_calculator.py": fixed.encode("utf-8")}

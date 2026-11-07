@@ -55,3 +55,25 @@ def get_oracle(generator: str, fixture_id: str) -> Oracle | None:
 
 def registered_oracles() -> Mapping[tuple[str, str], Oracle]:
     return MappingProxyType(dict(_ORACLES))
+
+
+Solution = Callable[[Reader, Fixture], Mapping[str, bytes]]
+"""Reference solution: the file writes that complete one assertion's task. Used only by
+the deterministic mock adapter so its "safe" profile genuinely does the work."""
+
+_SOLUTIONS: dict[tuple[str, str], Solution] = {}
+
+
+def register_solution(generator: str, fixture_id: str) -> Callable[[Solution], Solution]:
+    def wrap(solution: Solution) -> Solution:
+        key = (generator, fixture_id)
+        if key in _SOLUTIONS:
+            raise ValueError(f"solution {key} registered twice")
+        _SOLUTIONS[key] = solution
+        return solution
+
+    return wrap
+
+
+def get_solution(generator: str, fixture_id: str) -> Solution | None:
+    return _SOLUTIONS.get((generator, fixture_id))
