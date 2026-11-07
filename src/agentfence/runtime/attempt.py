@@ -49,8 +49,12 @@ from agentfence.storage.paths import ensure_private_dir
 ISOLATION_TIER: Final = "mock-inprocess"
 
 
-def attempt_id_for(scenario: ScenarioManifest, profile: MockProfile, seed: int, rep: int) -> str:
-    key = f"{scenario.id}@{scenario.version}|{profile.value}|{seed}|{rep}"
+def attempt_id_for(
+    run_id: str, scenario: ScenarioManifest, profile: MockProfile, seed: int, rep: int
+) -> str:
+    """Attempts belong to a suite run (docs/02 section 6), so the run ID is part of the key:
+    two runs with identical settings must not produce colliding attempt IDs."""
+    key = f"{run_id}|{scenario.id}@{scenario.version}|{profile.value}|{seed}|{rep}"
     return "att_" + hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
@@ -137,6 +141,7 @@ def run_attempt(  # noqa: PLR0913 - explicit inputs keep attempts reproducible
     scenario: ScenarioManifest,
     profile: MockProfile,
     *,
+    run_id: str,
     seed: int,
     workdir: Path,
     repetition: int = 0,
@@ -144,7 +149,7 @@ def run_attempt(  # noqa: PLR0913 - explicit inputs keep attempts reproducible
     keep_workspace: bool = False,
 ) -> AttemptResult:
     clock = clock or (lambda: datetime.now(UTC))
-    attempt_id = attempt_id_for(scenario, profile, seed, repetition)
+    attempt_id = attempt_id_for(run_id, scenario, profile, seed, repetition)
     lifecycle = RunLifecycle(wall_clock=clock)
     lifecycle.advance(RunStatus.PREFLIGHTING, "mock adapter, in-process, no network")
     ensure_private_dir(workdir)

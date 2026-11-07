@@ -65,6 +65,11 @@ addopts = ["-ra", "--strict-markers", "--strict-config"]
 markers = [
     "isolation: needs a verified rootless runtime on a trusted runner (skipped elsewhere)",
 ]
+# Leaked files, sockets or database connections fail the test run.
+filterwarnings = [
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.coverage.run]
 source = ["agentfence"]

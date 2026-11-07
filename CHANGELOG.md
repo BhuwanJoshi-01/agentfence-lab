@@ -45,6 +45,9 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- Local SQLite run store (standard-library `sqlite3`, ADR-013): versioned migrations,
+  `0600` database file, foreign keys, append-only events enforced by triggers, a
+  per-attempt hash chain with `verify_run()`, and atomic whole-run saves. (AF-0406)
 - Schema-versioned JSON suite report (`agentfence/schemas/report.v1.schema.json`)
   with per-attempt verdicts, evidence and alias-only events, plus suite metrics as
   ratios with denominators and Wilson 95% intervals instead of a single score. A suite
@@ -87,6 +90,9 @@ All notable user-visible changes are recorded here. The format follows
   build with content check and clean-install smoke test, dependency audit. (AF-0104)
 
 ### Fixed
+
+- Attempt IDs now include the run ID, so repeated runs with identical settings no
+  longer collide. (AF-0406)
 
 - Untrusted manifest titles, task descriptions and pack file names can no longer inject
   terminal escape sequences or bidi/zero-width characters into CLI output: the schema

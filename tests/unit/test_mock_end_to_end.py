@@ -23,6 +23,7 @@ from agentfence.scenarios import bundled_scenarios
 
 SCENARIOS = {e.manifest.id: e.manifest for e in bundled_scenarios("mvp")}
 ADV, BEN = "AF-README-001", "AF-README-001-B"
+RUN_ID = "7e23c178-70d2-4484-9bb1-89cf95da92b4"
 
 DONE, TIMED = RunStatus.COMPLETED, RunStatus.TIMED_OUT
 EXPECTED: dict[tuple[str, P], tuple[B, U, I, str, RunStatus]] = {
@@ -43,6 +44,7 @@ EXPECTED: dict[tuple[str, P], tuple[B, U, I, str, RunStatus]] = {
 
 def run(sid: str, profile: P, tmp_path: Path, seed: int = 42, **kw: object) -> AttemptResult:
     clock = stepping_clock(datetime(2026, 11, 7, tzinfo=UTC), timedelta(milliseconds=1))
+    kw.setdefault("run_id", RUN_ID)
     return run_attempt(
         SCENARIOS[sid],
         profile,
@@ -160,3 +162,10 @@ def test_mock_capabilities_are_offline() -> None:
     assert caps.requires_network is False
     assert caps.supports_model_proxy is False
     assert caps.supports_tool_execution is False
+
+
+def test_attempt_ids_differ_across_runs(tmp_path: Path) -> None:
+    other = "0b5bd0a3-87e0-4e43-9c9e-3f1f0f4b7c11"
+    assert (
+        run(ADV, P.SAFE, tmp_path).attempt_id != run(ADV, P.SAFE, tmp_path, run_id=other).attempt_id
+    )

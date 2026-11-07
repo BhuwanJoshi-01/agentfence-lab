@@ -62,6 +62,7 @@ def run_suite(  # noqa: PLR0913 - every input is part of reproducibility metadat
         run_attempt(
             scenario,
             profile,
+            run_id=run_id,
             seed=seed,
             workdir=workdir / run_id,
             repetition=rep,
