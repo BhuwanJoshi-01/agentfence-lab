@@ -68,6 +68,9 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- Event details now reject any host path (absolute POSIX, `~`, Windows drive or UNC,
+  `file:` URIs, embedded host directories), not only home-directory prefixes. (#87)
+
 - Group-writable config files are accepted when the group is the user's private group
   (Debian/Ubuntu `umask 0002`); shared-group and world-writable files are still
   refused. (AF-0102)
