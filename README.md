@@ -14,8 +14,9 @@ behind a verdict.
 
 > **Status: pre-alpha (`0.1.0.dev0`).** The offline pipeline works end to end with a
 > deterministic **mock** agent. There is **no sandbox yet**, **no real agent support** and
-> **no dashboard**. Mock results test AgentFence itself, not any real coding agent. See
-> [Limitations](#limitations) and the [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).
+> **no dashboard** (only its read-only local API). Mock results test AgentFence itself,
+> not any real coding agent. See [Limitations](#limitations) and the
+> [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).
 
 ## Quickstart (offline, no API keys)
 
@@ -118,6 +119,17 @@ cancelled. The evaluator rules are in [docs/reference/evaluator.md](docs/referen
   would be deleted, and `agentfence cleanup --apply` deletes it. See
   [docs/reference/data-retention.md](docs/reference/data-retention.md).
 
+## Local API
+
+`agentfence ui` serves a read-only JSON API on `127.0.0.1` for the planned dashboard. It
+needs the optional `ui` extra (`pip install -e '.[ui]'`), prints a session token, and
+refuses other host names, other origins and anything but `GET`. See
+[docs/reference/local-api.md](docs/reference/local-api.md).
+
+```bash
+agentfence ui --port 8484
+```
+
 ## Limitations
 
 - **No sandbox.** The mock runs inside the AgentFence process, against a private temporary
@@ -183,8 +195,8 @@ see [SECURITY.md](SECURITY.md). Everyone is expected to follow the
 | [10 Testing, CI and release](docs/10_TESTING_CI_RELEASE.md) | Test matrix, CI isolation, release gates |
 | [11 Positioning and community](docs/11_COMPETITION_LAUNCH_COMMUNITY.md) | Related work, audience, launch plan |
 | [12 References and decisions](docs/12_REFERENCES_AND_DECISIONS.md) | References and open design questions |
-| [Architecture decisions](docs/adr) | ADR-010 to ADR-014 |
-| [Reference](docs/reference) | Evaluator, trust boundaries, sandbox policy, data retention, supply chain |
+| [Architecture decisions](docs/adr) | ADR-010 to ADR-015 |
+| [Reference](docs/reference) | Evaluator, trust boundaries, sandbox policy, local API, data retention, supply chain |
 | [CHANGELOG.md](CHANGELOG.md) | User-visible changes |
 
 ## License

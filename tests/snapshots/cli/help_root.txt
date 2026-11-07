@@ -24,6 +24,7 @@ Commands:
   doctor     Check host prerequisites and validate configuration.
   test       Run scenarios with the offline mock adapter and save the report.
   cleanup    Delete saved runs older than the retention period.
+  ui         Serve the read-only local API on a loopback address.
   report     Export a saved run's report after verifying it.
   scenarios  Inspect bundled scenarios.
   runs       Inspect saved runs.

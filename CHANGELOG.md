@@ -87,6 +87,11 @@ All notable user-visible changes are recorded here. The format follows
   workspace volume instead of host mounts, resource caps and run labels. An allowlist
   auditor refuses any other option. Argument-level only: no container is started yet.
   See `docs/reference/sandbox-policy.md`. (AF-0203)
+- `agentfence ui`: read-only local API on a loopback address (optional `ui` extra:
+  FastAPI and uvicorn). Requests must name the loopback host, come from the same origin and
+  carry the printed session token; only `GET` routes exist; run data is served from the
+  verified report after the secret scan. See `docs/reference/local-api.md` and ADR-015.
+  (AF-0601)
 - Stale container and volume reconciliation by run label (`runtime/reconcile.py`):
   workspace volumes are created with the run labels, leftovers from runs that never
   finished are listed, checked again client-side and force-removed (containers first).

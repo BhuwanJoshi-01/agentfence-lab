@@ -1,0 +1,13 @@
+Usage: agentfence ui [OPTIONS]
+
+  Serve the read-only local API on a loopback address. Needs the 'ui' extra.
+
+  Prints a random session token; every request must send it as a bearer token.
+  Requests for another host name or from another origin are refused. Nothing can
+  be launched or changed through the API. Stop with Ctrl-C.
+
+Options:
+  --host <str>     Loopback address (default: ui.listen).
+  --port <int>     Port (default: ui.port).
+  --config <path>  Project config file (default: ./agentfence.yaml).
+  --help           Show this message and exit.

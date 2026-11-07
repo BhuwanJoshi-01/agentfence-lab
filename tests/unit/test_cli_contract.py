@@ -40,6 +40,7 @@ HELP_TARGETS = {
     "runs_compare": ["runs", "compare"],
     "report": ["report"],
     "cleanup": ["cleanup"],
+    "ui": ["ui"],
 }
 
 FACTS = HostFacts(
@@ -114,6 +115,7 @@ def test_command_tree_is_exactly_the_implemented_contract() -> None:
         "runs compare",
         "report",
         "cleanup",
+        "ui",
     }
 
 
