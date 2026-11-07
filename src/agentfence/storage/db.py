@@ -305,12 +305,6 @@ class RunStore:
             report_sha256=row["report_sha256"],
         )
 
-    def attempt_ids(self, run_id: str) -> list[str]:
-        rows = self._conn.execute(
-            "SELECT id FROM attempts WHERE suite_run_id=? ORDER BY id", (run_id,)
-        ).fetchall()
-        return [str(row[0]) for row in rows]
-
     def events_for(self, attempt_id: str) -> list[ObservedEvent]:
         rows = self._conn.execute(
             "SELECT payload_json FROM events WHERE attempt_id=? ORDER BY seq", (attempt_id,)
