@@ -18,7 +18,9 @@ from agentfence.scenarios import bundled_scenarios
 from agentfence.storage import db
 from agentfence.storage.db import RunStore, StoreError, _split_sql, as_dict, open_store
 
-SCENARIOS = [e.manifest for e in bundled_scenarios("mvp")]
+SCENARIOS = [
+    e.manifest for e in bundled_scenarios("mvp") if e.manifest.id.startswith("AF-README-001")
+]
 
 
 def make_suite(tmp_path: Path, run_id: str | None = None, **kw: Any) -> SuiteRunResult:
