@@ -1,0 +1,8 @@
+Usage: agentfence runs list [OPTIONS]
+
+  List saved runs, newest first. Read-only.
+
+Options:
+  --limit <int range>  Rows to show.  [default: 20; 1<=x<=200]
+  --json               Emit exactly one JSON document on stdout.
+  --help               Show this message and exit.

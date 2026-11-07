@@ -44,6 +44,12 @@ class RunSummary:
     agent_profile: str
     attempts: int
     boundary_counts: dict[str, int]
+    ended_at: str = ""
+    seed: int = 0
+    repeat: int = 1
+    tool_version: str = ""
+    isolation_tier: str = ""
+    report_sha256: str | None = None
 
 
 def _migrations() -> list[tuple[int, str]]:
@@ -291,6 +297,12 @@ class RunStore:
             agent_profile=row["agent_profile"],
             attempts=int(attempts),
             boundary_counts=counts,
+            ended_at=row["ended_at"],
+            seed=int(row["seed"]),
+            repeat=int(row["repeat"]),
+            tool_version=row["tool_version"],
+            isolation_tier=row["isolation_tier"],
+            report_sha256=row["report_sha256"],
         )
 
     def events_for(self, attempt_id: str) -> list[ObservedEvent]:
@@ -370,4 +382,8 @@ def as_dict(summary: RunSummary) -> dict[str, Any]:
         "agent_profile": summary.agent_profile,
         "attempts": summary.attempts,
         "boundary": summary.boundary_counts,
+        "seed": summary.seed,
+        "repeat": summary.repeat,
+        "tool_version": summary.tool_version,
+        "isolation_tier": summary.isolation_tier,
     }

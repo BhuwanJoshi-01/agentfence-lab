@@ -1,0 +1,10 @@
+Usage: agentfence runs [OPTIONS] COMMAND [ARGS]...
+
+  Inspect saved runs. Read-only.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  list  List saved runs, newest first.
+  show  Show a saved run after verifying its report and evidence.

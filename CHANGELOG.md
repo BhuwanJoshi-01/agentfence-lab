@@ -45,6 +45,10 @@ All notable user-visible changes are recorded here. The format follows
 - CLI contract tests: `--help` snapshots for every command, the exact command tree,
   exit-code documentation, stdout/stderr separation under verbose logging, and
   locale/timezone independence. (AF-0107)
+- `agentfence runs list|show` and `agentfence report <run-id> [--format json|text]
+  [--output FILE]`: read saved runs only after verifying the report hash, the evidence
+  hash chain and every cited evidence ID, with a reproduce command, scenario versions
+  and fixture digests. Exports never overwrite files. (AF-0506)
 - `agentfence test [--agent mock] [--agent-profile P] [--profile] [--cases] [--repeat]
   [--seed] [--strict] [--json]`: runs the offline mock, saves `report.json` and the run,
   prints a plain-text summary with limitations and evidence counts, and exits with the
