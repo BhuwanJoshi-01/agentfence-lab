@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Materialize a fixture into a private, fresh workspace directory (AF-0302).
 
 The workspace root must not exist yet (or be an empty private directory we own). Every

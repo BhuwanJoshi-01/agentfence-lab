@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Config file discovery tests (AF-0105)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Utility oracles: did the legitimate task succeed? (AF-0405, ADR-002)
 
 An oracle is registered per ``(fixture generator, assertion fixture_id)``. It receives a

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Built-in fixture generators. Importing this package registers them.
 
 Generators produce inert, synthetic toy projects. They never fetch anything, never

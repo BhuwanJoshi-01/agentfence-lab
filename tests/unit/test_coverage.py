@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Collector coverage and bounded stream tests (AF-0402)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Deterministic fixture generation and materialization (AF-0302, AF-0309 groundwork)."""
 
 from __future__ import annotations

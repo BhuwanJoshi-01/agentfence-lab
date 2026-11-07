@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Schema-versioned machine report (AF-0501; docs/06 section 8, docs/07 section 8).
 
 The report is built only from data that is already safe to share: verdicts, metrics and

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Hardened YAML loader tests (AF-0103)."""
 
 from __future__ import annotations

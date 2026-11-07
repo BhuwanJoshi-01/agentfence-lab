@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Ctrl-C and crash recovery (AF-0407; docs/02 section 5, docs/06 section 10)."""
 
 from __future__ import annotations

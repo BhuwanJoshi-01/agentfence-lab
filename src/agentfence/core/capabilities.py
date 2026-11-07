@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Capability models for adapters and the host (AF-0103).
 
 ``AdapterCapabilities`` follows docs/05 section 2. Every boolean means *verified*, not

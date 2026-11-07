@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Collector coverage: which observation channels actually watched an attempt (AF-0402).
 
 A dropped log source is not proof that nothing happened (docs/02 section 8). Every

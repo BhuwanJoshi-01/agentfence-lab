@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Config schema and precedence tests (AF-0103; docs/06 section 5, docs/10 section 3)."""
 
 from __future__ import annotations

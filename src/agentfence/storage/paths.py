@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """XDG-aware state and config locations with private permissions (AF-0105).
 
 Defaults (docs/02 section 9, docs/06 section 6):

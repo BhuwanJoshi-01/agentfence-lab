@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Mock adapter planning for every failure-rule kind (AF-0308).
 
 The bundled README scenario only exercises forbidden writes; these tests drive the

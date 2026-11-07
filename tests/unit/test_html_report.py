@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Self-contained HTML report (AF-0503; docs/03 section 8, docs/10 section 7)."""
 
 from __future__ import annotations

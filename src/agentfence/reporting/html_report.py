@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Self-contained, offline HTML report (AF-0503; docs/03 section 8, docs/07 section 10).
 
 * No scripts, no remote fonts, images, links or stylesheets: the page works offline and

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Trust comes from the collector registry, not from the event's label (issue #88)."""
 
 from __future__ import annotations

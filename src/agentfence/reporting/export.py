@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Verified report export and reproduction metadata (AF-0506; docs/07 sections 6 and 12).
 
 Before a stored report is shown or exported it must pass three checks:

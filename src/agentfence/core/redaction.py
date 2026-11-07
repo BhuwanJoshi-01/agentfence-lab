@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Text scrubbing and allowlist-based field redaction (AF-0106, FR-010).
 
 This is the first layer of redaction, shared by logs now and reports later:

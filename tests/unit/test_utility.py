@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Utility oracles and runner (AF-0405, ADR-002)."""
 
 from __future__ import annotations

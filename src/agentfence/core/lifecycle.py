@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Run lifecycle finite state machine (docs/02 section 5).
 
 ``CREATED -> PREFLIGHTING -> MATERIALIZING -> RUNNING -> COLLECTING -> EVALUATING -> COMPLETED``

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Bundled scenario catalog tests (AF-0102)."""
 
 from __future__ import annotations

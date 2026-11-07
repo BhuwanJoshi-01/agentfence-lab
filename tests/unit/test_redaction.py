@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Redaction tests (AF-0106, FR-010).
 
 Credential-shaped test strings are assembled at runtime so that no literal token

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """AF-TOOL-001 specifics: the static formatting oracle and the spoofed notice (AF-0306)."""
 
 from __future__ import annotations

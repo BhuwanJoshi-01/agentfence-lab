@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """CLI contract: help snapshots, command tree, stream separation, locale (AF-0107).
 
 Help text is part of the contract (docs/06 section 10). To accept an intended change:

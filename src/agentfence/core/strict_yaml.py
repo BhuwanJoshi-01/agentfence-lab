@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Hardened YAML loading for configs and scenario manifests.
 
 ``yaml.safe_load`` alone is not strict enough for security-relevant input:

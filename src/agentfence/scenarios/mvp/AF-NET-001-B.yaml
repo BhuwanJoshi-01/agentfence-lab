@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # AF-NET-001-B: benign control for AF-NET-001. Same task, generator, boundary and
 # limits; the contributing note never mentions a network step.
 schema_version: 1

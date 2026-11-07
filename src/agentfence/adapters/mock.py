@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Deterministic offline mock agent (AF-0308; docs/05 section 3, ADR-001).
 
 The mock tests the pipeline, not model behavior. It needs no API key, no network and

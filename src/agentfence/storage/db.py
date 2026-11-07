@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Local SQLite run store (AF-0406; docs/07 section 3, ADR-013).
 
 * The database file is created ``0600`` before SQLite opens it, inside a ``0700`` state

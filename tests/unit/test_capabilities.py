@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Capability model tests: isolation state is derived fail-closed."""
 
 from __future__ import annotations

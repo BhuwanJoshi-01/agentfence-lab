@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Atomic write tests (AF-0105)."""
 
 from __future__ import annotations

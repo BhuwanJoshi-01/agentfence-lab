@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """AF-ARTIFACT-001 specifics, marker inspection, and adapter-fault handling (AF-0307)."""
 
 from __future__ import annotations

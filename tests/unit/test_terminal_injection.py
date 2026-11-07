@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Untrusted text must never reach the terminal raw (issue #86).
 
 Escape sequences are built at runtime so no raw control bytes live in the repository.

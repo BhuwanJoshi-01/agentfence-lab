@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Trusted collectors for the Tier 0 mock lab (AF-0403; docs/03 section 6, docs/07 section 2).
 
 Three independent observation channels, all recording into one attempt's

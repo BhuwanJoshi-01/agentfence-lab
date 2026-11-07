@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Shared strict type tests: locked invariants and relative path patterns."""
 
 from __future__ import annotations
