@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Final
 
 REDACTED: Final = "[REDACTED]"
@@ -29,20 +30,24 @@ _PEM_BLOCK = re.compile(
     re.DOTALL,
 )
 _SYNTHETIC_MARKER = re.compile(r"AF_FAKE_[A-Za-z0-9_\-]+")
-_CREDENTIAL_PATTERNS: Final = (
-    re.compile(r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_\-]{16,}"),  # OpenAI / Anthropic style
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),  # GitHub tokens
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}"),
-    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS access key IDs
-    re.compile(r"\bxox[abposr]-[A-Za-z0-9\-]{10,}"),  # Slack
-    re.compile(r"\bAIza[0-9A-Za-z_\-]{30,}"),  # Google API keys
-    re.compile(r"\beyJ[A-Za-z0-9_\-]{8,}\.eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]+"),  # JWT
-    re.compile(r"(?i)\b(bearer)(\s+)(?!\[)[A-Za-z0-9._~+/\-]{8,}=*"),
-    re.compile(
-        r"(?i)\b(token|api[_-]?key|password|passwd|secret|access[_-]?key)(\s*[:=]\s*)"
-        r"(?!\[)[^\s'\"]{6,}"
+_CREDENTIAL_SHAPES: Final = (
+    ("API key (sk-)", re.compile(r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_\-]{16,}")),
+    ("GitHub token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}")),
+    ("GitHub token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}")),
+    ("AWS access key ID", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("Slack token", re.compile(r"\bxox[abposr]-[A-Za-z0-9\-]{10,}")),
+    ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_\-]{30,}")),
+    ("JWT", re.compile(r"\beyJ[A-Za-z0-9_\-]{8,}\.eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]+")),
+    ("bearer token", re.compile(r"(?i)\b(bearer)(\s+)(?!\[)[A-Za-z0-9._~+/\-]{8,}=*")),
+    (
+        "credential assignment",
+        re.compile(
+            r"(?i)\b(token|api[_-]?key|password|passwd|secret|access[_-]?key)(\s*[:=]\s*)"
+            r"(?!\[)[^\s'\"]{6,}"
+        ),
     ),
 )
+_CREDENTIAL_PATTERNS: Final = tuple(pattern for _, pattern in _CREDENTIAL_SHAPES)
 _USER_HOME = re.compile(r"(?:/home|/Users)/[^/\s:'\"]+")
 # CSI / OSC / other ESC sequences, then remaining C0 controls except \t and \n, plus DEL
 # and C1 controls. Prevents terminal injection from untrusted fixture or agent text.
@@ -71,6 +76,33 @@ def scrub_text(text: str, *, home: str | None = None) -> str:
     if home and home not in {"/", ""}:
         out = out.replace(home.rstrip("/"), HOME_ALIAS)
     return _USER_HOME.sub(HOME_ALIAS, out)
+
+
+@dataclass(frozen=True, slots=True, order=True)
+class SecretFinding:
+    """Where a suspected secret is. Deliberately carries no part of the matched value."""
+
+    line: int
+    kind: str
+
+
+def find_secrets(text: str) -> tuple[SecretFinding, ...]:
+    """Everything in ``text`` that :func:`scrub_text` would redact as a secret.
+
+    Covers private key blocks, ``AF_FAKE_`` synthetic markers and the credential shapes
+    above. Returns kinds and 1-based line numbers only, so the result is safe to print.
+    Already-redacted placeholders (``[CREDENTIAL]``) do not count.
+    """
+    found: set[SecretFinding] = set()
+    shapes = (
+        ("private key block", _PEM_BLOCK),
+        ("synthetic secret marker", _SYNTHETIC_MARKER),
+        *_CREDENTIAL_SHAPES,
+    )
+    for kind, pattern in shapes:
+        for match in pattern.finditer(text):
+            found.add(SecretFinding(text.count("\n", 0, match.start()) + 1, kind))
+    return tuple(sorted(found))
 
 
 Scalar = str | int | float | bool | None
