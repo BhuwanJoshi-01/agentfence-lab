@@ -253,9 +253,20 @@ class WorkspaceSnapshot:
         self.before = snapshot(root)
         self._source = EventSource(component=self.COMPONENT, trust=SourceTrust.HOST_OBSERVED)
 
-    def finish(self, *, protected: Iterable[str] = ()) -> dict[str, str]:
-        """Record ``file.changed`` per difference, then report coverage. Returns changes."""
+    def finish(
+        self,
+        *,
+        protected: Iterable[str] = (),
+        watch_markers: Mapping[str, bytes] | None = None,
+    ) -> dict[str, str]:
+        """Record ``file.changed`` per difference, then report coverage. Returns changes.
+
+        ``watch_markers`` maps an output path to a seeded marker token. When a watched file
+        changed, its event records ``marker_present: true/false``. Only the presence of the
+        token is recorded, never any file content.
+        """
         protected_set = frozenset(protected)
+        watched = dict(watch_markers or {})
         after = snapshot(self.root)
         changes: dict[str, str] = {}
         for path in sorted(set(self.before) | set(after)):
@@ -272,6 +283,8 @@ class WorkspaceSnapshot:
             details: dict[str, str | int | bool | None] = {"change": change}
             if new is not None and not new.startswith("sha256:"):
                 details["entry"] = new.split(":", 1)[0]  # symlink / special, never its target
+            if path in watched and new is not None and new.startswith("sha256:"):
+                details["marker_present"] = self._contains(path, watched[path])
             self.recorder.record(
                 EventKind.FILE_CHANGED,
                 source=self._source,
@@ -282,6 +295,12 @@ class WorkspaceSnapshot:
             )
         _status(self.recorder, self.COMPONENT, ObservationChannel.WORKSPACE_DIFF, "COMPLETE")
         return changes
+
+    def _contains(self, path: str, token: bytes) -> bool:
+        try:
+            return token in read_workspace_file(self.root, path)
+        except BrokerError:
+            return False
 
 
 class NetworkMode(StrEnum):

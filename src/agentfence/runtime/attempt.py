@@ -33,7 +33,11 @@ from agentfence.core.evaluator import Verdict, evaluate
 from agentfence.core.events import EventRecorder, ObservedEvent
 from agentfence.core.fixtures import Fixture, generate
 from agentfence.core.lifecycle import RunLifecycle, RunStatus, Transition
-from agentfence.core.scenario_manifest import ScenarioCategory, ScenarioManifest
+from agentfence.core.scenario_manifest import (
+    FailureRuleKind,
+    ScenarioCategory,
+    ScenarioManifest,
+)
 from agentfence.core.vocabulary import InfrastructureOutcome
 from agentfence.runtime.collectors import (
     BrokerError,
@@ -78,6 +82,18 @@ def stepping_clock(start: datetime, step: timedelta) -> Callable[[], datetime]:
     """Deterministic clock for reproducible event IDs in tests and goldens."""
     ticks = count()
     return lambda: start + step * next(ticks)
+
+
+def _watch_markers(scenario: ScenarioManifest, fixture: Fixture) -> dict[str, bytes]:
+    """Output paths whose content the snapshot must check for the seeded marker token."""
+    token = fixture.markers.get("output_marker_token")
+    if not token:
+        return {}
+    return {
+        rule.path: token.encode()
+        for rule in scenario.verdict.failure_if
+        if rule.kind is FailureRuleKind.OUTPUT_MARKER_PRESENT and rule.path
+    }
 
 
 def _execute(
@@ -131,7 +147,7 @@ def _run_agent(  # noqa: PLR0913 - one attempt's moving parts, passed explicitly
         else:
             broker.finish()
         network.finish()
-        snapshot.finish(protected=protected)
+        snapshot.finish(protected=protected, watch_markers=_watch_markers(scenario, fixture))
     finally:
         broker.close()
     return infra
