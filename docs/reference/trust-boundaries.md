@@ -52,27 +52,30 @@ flowchart LR
         CLI["cli.py"]
         CONFIG["config_discovery.py, config.py, strict_yaml.py"]
         CATALOG["scenarios/loader.py, scenario_manifest.py"]
-        PROBE["runtime/host_probe.py (read-only)"]
+        PROBE["host_probe.py, engine_probe.py"]
+        ATTEMPT["attempt.py, fixtures.py, workspace.py"]
         RUNNER["Preflight and sandbox runner"]:::planned
-        EVENTS["events.py, coverage.py"]
+        EVENTS["events.py, coverage.py, trust.py"]
         EVAL["evaluator.py, globs.py"]
         REDACT["redaction.py, log.py"]
-        STORAGE["storage/paths.py, atomic.py"]
-        REPORTER["Reporter and local API"]:::planned
+        STORAGE["paths.py, atomic.py, db.py, cleanup.py"]
+        REPORTER["json_report.py, html_report.py, export.py"]
+        API["Local dashboard API"]:::planned
     end
 
     subgraph Z1["Z1 Host account (protected)"]
-        FACTS["OS, Python, PATH, cgroup marker"]
+        FACTS["OS, Python, PATH, cgroup and sysctl files"]
         ENGINE["Container engine"]
         SECRETS["Home, SSH agent, cloud and agent logins, host sockets"]
     end
 
     subgraph Z6["Z6 Sandbox (untrusted)"]
-        WORKSPACE["Synthetic workspace"]:::planned
-        AGENT["Agent adapter and process, mock first"]:::planned
+        WORKSPACE["Synthetic workspace (private dir, not isolated)"]
+        MOCK["Mock agent (runs in Z4 today)"]
+        AGENT["Sandboxed agent process"]:::planned
     end
     subgraph Z7["Z7 Trusted collectors"]
-        COLLECTORS["Broker, mock sink, supervisor, diff, utility runner"]:::planned
+        COLLECTORS["Broker, snapshot, mock sink, utility runner, supervisor"]
     end
 
     subgraph Z8["Z8 Local outputs (private)"]
@@ -81,7 +84,8 @@ flowchart LR
     end
     subgraph Z9["Z9 Readers"]
         TERM["Terminal and CI log"]
-        BROWSER["Browser: HTML report, dashboard"]:::planned
+        BROWSER["Browser: HTML report"]
+        DASH["Browser: dashboard"]:::planned
     end
     subgraph Z10["Z10 External"]
         NET["Internet and local network"]
@@ -95,22 +99,25 @@ flowchart LR
     BUNDLED -->|TB-05| CATALOG
     PACK -->|TB-06| CATALOG
     FACTS -->|TB-07| PROBE
-    ENGINE -.->|TB-08| RUNNER
-    RUNNER -.->|"TB-09, TB-10, TB-11"| AGENT
+    ENGINE -->|TB-08| PROBE
+    RUNNER -.->|"TB-09, TB-11"| AGENT
+    ATTEMPT -->|TB-10| WORKSPACE
+    WORKSPACE -->|TB-12| MOCK
     WORKSPACE -.->|TB-12| AGENT
     AGENT -.->|TB-13| SECRETS
     AGENT -.->|TB-14| NET
+    MOCK -->|"TB-14, TB-15"| COLLECTORS
     AGENT -.->|TB-15| COLLECTORS
     AGENT -.->|TB-16| EVENTS
-    COLLECTORS -.->|TB-18| EVENTS
+    COLLECTORS -->|TB-18| EVENTS
     EVENTS -->|TB-19| EVAL
     STORAGE -->|TB-20| STATE
+    REPORTER --> STATE
     REDACT -->|TB-21| STREAMS
     CLI -->|TB-22| STREAMS
     STREAMS --> TERM
-    REPORTER -.-> STATE
-    STATE -.->|TB-23| BROWSER
-    BROWSER -.->|TB-24| REPORTER
+    STATE -->|TB-23| BROWSER
+    DASH -.->|TB-24| API
     AGENT -.->|TB-17| MODEL
 ```
 
