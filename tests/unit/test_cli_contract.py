@@ -36,6 +36,7 @@ HELP_TARGETS = {
     "runs": ["runs"],
     "runs_list": ["runs", "list"],
     "runs_show": ["runs", "show"],
+    "runs_compare": ["runs", "compare"],
     "report": ["report"],
 }
 
@@ -108,6 +109,7 @@ def test_command_tree_is_exactly_the_implemented_contract() -> None:
         "test",
         "runs list",
         "runs show",
+        "runs compare",
         "report",
     }
 

@@ -73,6 +73,9 @@ All notable user-visible changes are recorded here. The format follows
   and cannot be redirected by symlinks, before/after workspace digests as
   `file.changed` events, and a socket-free mock network with deny and lab-sink modes.
   (AF-0403)
+- `agentfence runs compare <baseline> <candidate> [--json]`: per-scenario REGRESSED /
+  IMPROVED / CHANGED / UNCHANGED, and INCOMPARABLE with reasons when scenario version,
+  evaluator, fixture, isolation tier or agent differ. Exits 1 on regressions. (AF-0504)
 - `agentfence report <run-id> --format html`: a single offline HTML file with a strict
   Content-Security-Policy (no scripts, no remote resources), escaped content, inert
   embedded JSON and accessible tables. (AF-0503)

@@ -6,5 +6,6 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  list  List saved runs, newest first.
-  show  Show a saved run after verifying its report and evidence.
+  list     List saved runs, newest first.
+  show     Show a saved run after verifying its report and evidence.
+  compare  Compare two saved runs scenario by scenario.

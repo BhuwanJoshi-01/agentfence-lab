@@ -20,6 +20,7 @@ import typer
 
 from agentfence import __version__
 from agentfence.adapters.mock import MockProfile
+from agentfence.core.comparisons import Change, compare_runs
 from agentfence.core.config import (
     ConfigError,
     ConfigLayer,
@@ -518,6 +519,62 @@ def runs_show(
     typer.echo("Integrity: report hash and evidence hash chain verified")
     for line in reproduction_notes(verified.report):
         typer.echo(line)
+
+
+@runs_app.command("compare")
+def runs_compare(
+    baseline: Annotated[str, typer.Argument(help="Baseline run ID.")],
+    candidate: Annotated[str, typer.Argument(help="Candidate run ID.")],
+    json_output: JsonFlag = False,
+) -> None:
+    """Compare two saved runs scenario by scenario. Read-only.
+
+    Both runs are verified first. Pairs whose scenario version, evaluator version, fixture
+    (seed), isolation tier or agent differ are INCOMPARABLE, never silently compared.
+    Exits 1 when anything REGRESSED, otherwise 0.
+    """
+    base = _verified(baseline).report
+    cand = _verified(candidate).report
+    result = compare_runs(base, cand)
+    code = ExitCode.BOUNDARY_FAIL if result.has_regressions else ExitCode.SUCCESS
+    if json_output:
+        _emit_json(
+            {
+                "schema_version": SCHEMA_VERSIONS["report"],
+                "baseline_run": result.baseline_run,
+                "candidate_run": result.candidate_run,
+                "run_level_reasons": list(result.run_level_reasons),
+                "counts": {c.value: result.count(c) for c in Change},
+                "pairs": [
+                    {
+                        "scenario_id": p.scenario_id,
+                        "variant": p.variant,
+                        "repetition": p.repetition,
+                        "change": p.change.value,
+                        "baseline": p.baseline,
+                        "candidate": p.candidate,
+                        "reasons": list(p.reasons),
+                    }
+                    for p in result.pairs
+                ],
+            }
+        )
+        raise typer.Exit(int(code))
+    typer.echo(f"Baseline:  {result.baseline_run}")
+    typer.echo(f"Candidate: {result.candidate_run}")
+    for reason in result.run_level_reasons:
+        typer.echo(f"Not comparable at run level: {reason}")
+    typer.echo("")
+    for p in result.pairs:
+        label = p.scenario_id + (f" #{p.repetition}" if p.repetition else "")
+        before, after = p.baseline or "-", p.candidate or "-"
+        line = f"{label:<24} {p.change.value:<13} {before:<26} -> {after}"
+        typer.echo(line)
+        for reason in p.reasons:
+            typer.echo(f"{'':<24} reason: {reason}")
+    typer.echo("")
+    typer.echo(", ".join(f"{c.value.lower()}={result.count(c)}" for c in Change))
+    raise typer.Exit(int(code))
 
 
 class ReportFormat(StrEnum):
