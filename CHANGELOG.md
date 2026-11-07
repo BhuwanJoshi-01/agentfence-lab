@@ -81,6 +81,9 @@ All notable user-visible changes are recorded here. The format follows
   block the child, bounded teardown and a recursion guard. `doctor`'s engine queries now run
   under it. Processes that leave the group with `setsid` are a documented limit until
   containers land. (AF-0204)
+- Preflight secret scan: `report` and `runs show` check the exact output for synthetic
+  markers, private keys and credential shapes before printing or writing it, and refuse
+  (exit 4) with the kind and line of each finding, never the value. (#119)
 - `agentfence cleanup`: retention based on `storage.retention_days` (or `--older-than`).
   Dry run by default; `--apply` needs confirmation or `--yes`. Expired runs are purged from
   the database in one transaction with the append-only trigger restored, then their folders
