@@ -62,6 +62,27 @@ jobs:
       - name: Tests (isolation tests excluded on hosted runners)
         run: uv run pytest -m "not isolation" --cov --cov-report=term-missing
 
+  scenario-lint:
+    name: scenario-lint (manifests, synthetic data, fixtures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev
+      - name: Bundled manifests and benign pairs validate
+        run: uv run agentfence scenarios validate src/agentfence/scenarios/mvp
+      - name: Synthetic-only data, oracles, profile matrix and pinned fixture digests
+        run: >-
+          uv run pytest -q
+          tests/unit/test_scenario_library.py
+          tests/unit/test_bundled_scenarios.py
+          tests/unit/test_fixture_integrity.py
+
   package:
     name: package (build + clean install smoke test)
     runs-on: ubuntu-latest
