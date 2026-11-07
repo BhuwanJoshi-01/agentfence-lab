@@ -32,6 +32,7 @@ HELP_TARGETS = {
     "scenarios": ["scenarios"],
     "scenarios_list": ["scenarios", "list"],
     "scenarios_validate": ["scenarios", "validate"],
+    "test": ["test"],
 }
 
 FACTS = HostFacts(
@@ -100,6 +101,7 @@ def test_command_tree_is_exactly_the_implemented_contract() -> None:
         "doctor",
         "scenarios list",
         "scenarios validate",
+        "test",
     }
 
 

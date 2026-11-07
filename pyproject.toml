@@ -102,6 +102,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# Typer commands expose every documented CLI option as a parameter.
+"src/agentfence/cli.py" = ["PLR0913", "PLR0917"]
 "tests/**" = [
     "S101",    # assert is how pytest works
     "S603",    # tests spawn our own CLI with argument arrays

@@ -1,6 +1,6 @@
 # AgentFence Lab — Engineering Blueprint
 
-> **Status:** pre-alpha. `agentfence version`, `doctor` and `scenarios list` work (read-only); sandboxing, scenarios and reports are still a design specification. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
+> **Status:** pre-alpha. The offline mock pipeline works end to end for the first scenario pair (`agentfence test`); the rootless sandbox, the other four scenario families, HTML reports and live agents are not built yet. Track progress in [milestones](https://github.com/BhuwanJoshi-01/agentfence-lab/milestones).  
 > **Prepared:** 2026-11-06 · **Audience:** solo developer, maintainers, coding agents, security reviewers.  
 > **Category:** defensive AI coding-agent security evaluation.  
 > **Tagline:** *Test what your coding agent actually does, not merely what it claims to do.*
@@ -53,8 +53,12 @@ python -m pip install -e '.[dev]'     # or: uv sync --extra dev
 agentfence version --json
 agentfence doctor            # read-only host check; exits 3 until rootless verification lands (AF-0201)
 agentfence scenarios list    # the bundled scenarios (AF-README-001 and its benign control so far)
+agentfence test --agent mock --agent-profile unsafe   # exits 1: the mock crosses the boundary
+agentfence test --agent mock --agent-profile safe     # exits 0
 pytest -q
 ```
+
+`agentfence test` writes `report.json` (schema: `src/agentfence/schemas/report.v1.schema.json`) under `~/.local/state/agentfence/runs/<run-id>/` and records the run in a local SQLite store. The mock runs in-process: it executes no workspace code and opens no network connections, and the report says plainly that no containment claim is made. Mock results test AgentFence itself, not any real coding agent.
 
 `doctor` is deliberately fail-closed. It reports `runtime.rootless` as `UNKNOWN`, and the isolation state as `UNSUPPORTED`, until real rootless verification exists. A host AgentFence can't verify never looks ready.
 

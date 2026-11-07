@@ -8,6 +8,7 @@ stdout; with ``--json`` stdout carries exactly one JSON document and everything 
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
@@ -17,15 +18,34 @@ from typing import Annotated, Any, NoReturn
 import typer
 
 from agentfence import __version__
-from agentfence.core.config import ConfigError, ResolvedConfig, resolve_config
+from agentfence.adapters.mock import MockProfile
+from agentfence.core.config import (
+    ConfigError,
+    ConfigLayer,
+    ConfigSource,
+    ResolvedConfig,
+    resolve_config,
+)
 from agentfence.core.redaction import scrub_text
-from agentfence.core.vocabulary import SCHEMA_VERSIONS, ExitCode, IsolationState
+from agentfence.core.scenario_manifest import ScenarioManifest
+from agentfence.core.vocabulary import (
+    SCHEMA_VERSIONS,
+    ExitCode,
+    InfrastructureOutcome,
+    IsolationState,
+    run_exit_code,
+)
 from agentfence.log import LogConfigError, configure_logging, get_logger
+from agentfence.reporting.console import render_summary
+from agentfence.reporting.json_report import build_report, report_json
 from agentfence.runtime.host_probe import assess_host, gather_host_facts
+from agentfence.runtime.suite import run_suite
 from agentfence.scenarios import CatalogError, bundled_scenarios
 from agentfence.scenarios.loader import PackError, load_pack
+from agentfence.storage.atomic import atomic_write_text
 from agentfence.storage.config_discovery import discover_config_layers
-from agentfence.storage.paths import PathConfigError, resolve_paths
+from agentfence.storage.db import StoreError, open_store
+from agentfence.storage.paths import PathConfigError, ensure_private_dir, resolve_paths
 
 DISTRIBUTION_NAME = "agentfence-lab"
 log = get_logger("cli")
@@ -46,8 +66,8 @@ app = typer.Typer(
     name="agentfence",
     help=(
         "AgentFence Lab: evidence-first security regression testing for AI coding agents.\n\n"
-        "Pre-alpha. Only read-only commands are implemented; nothing here calls a model, "
-        "launches an agent or uses the network.\n\n" + EXIT_CODE_HELP
+        "Pre-alpha. Nothing here calls a model, launches a real agent or uses the network. "
+        "'test' runs the offline mock adapter only.\n\n" + EXIT_CODE_HELP
     ),
     no_args_is_help=True,
     add_completion=False,
@@ -105,10 +125,14 @@ def version(json_output: JsonFlag = False) -> None:
     typer.echo(f"AgentFence Lab {info['version']} (python {info['python']}, {info['platform']})")
 
 
-def _load_config(config: Path | None) -> ResolvedConfig:
+def _load_config(
+    config: Path | None, *, cli_overrides: dict[str, Any] | None = None
+) -> ResolvedConfig:
     try:
         paths = resolve_paths()
         layers = discover_config_layers(paths=paths, cwd=Path.cwd(), explicit=config)
+        if cli_overrides:
+            layers.append(ConfigLayer(ConfigSource.CLI, "command line", cli_overrides))
         return resolve_config(layers)
     except (ConfigError, PathConfigError) as exc:
         _fail(str(exc), ExitCode.USAGE_ERROR)
@@ -280,6 +304,138 @@ def scenarios_validate(
             f"OK       {row['id']:<18} {row['version']:<8} {row['variant']:<12} {row['source']}"
         )
     typer.echo(f"{len(rows)} manifest(s) valid.")
+
+
+def _select_cases(profile: str, include: tuple[str, ...]) -> list[ScenarioManifest]:
+    """Bundled scenarios for ``profile``; selecting a scenario also selects its benign pair."""
+    try:
+        entries = bundled_scenarios(profile)
+    except CatalogError as exc:
+        _fail(str(exc), ExitCode.USAGE_ERROR)
+    by_id = {e.manifest.id: e.manifest for e in entries}
+    if not by_id:
+        _fail(f"no scenarios are bundled for profile {profile!r}", ExitCode.USAGE_ERROR)
+    if not include:
+        return list(by_id.values())
+    unknown = [i for i in include if i not in by_id]
+    if unknown:
+        _fail(
+            f"unknown scenario ID(s) for profile {profile!r}: {', '.join(unknown)}. "
+            "See 'agentfence scenarios list'.",
+            ExitCode.USAGE_ERROR,
+        )
+    chosen = set(include)
+    for sid in include:
+        pair = by_id[sid].benign_pair
+        if pair:
+            chosen.add(pair)
+    return [by_id[sid] for sid in sorted(chosen)]
+
+
+@app.command("test")
+def test_command(
+    agent: Annotated[
+        str | None, typer.Option("--agent", help="Agent adapter. Only 'mock' exists.")
+    ] = None,
+    agent_profile: Annotated[
+        str | None,
+        typer.Option(
+            "--agent-profile",
+            help="Mock behavior: safe, unsafe, refusal, no-exposure, no-telemetry, timeout.",
+        ),
+    ] = None,
+    profile: Annotated[
+        str | None, typer.Option("--profile", help="Scenario profile (default: mvp).")
+    ] = None,
+    cases: Annotated[
+        str | None,
+        typer.Option("--cases", help="Comma-separated scenario IDs; benign pairs are added."),
+    ] = None,
+    repeat: Annotated[int | None, typer.Option("--repeat", help="Runs per scenario.")] = None,
+    seed: Annotated[int, typer.Option("--seed", min=0, help="Fixture seed.")] = 0,
+    strict: Annotated[
+        bool, typer.Option("--strict", help="Exit 5 when any result is INCONCLUSIVE.")
+    ] = False,
+    config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Project config file (default: ./agentfence.yaml)."),
+    ] = None,
+    json_output: JsonFlag = False,
+) -> None:
+    """Run scenarios with the offline mock adapter and save the report.
+
+    Writes report.json under <state>/runs/<run-id>/ and records the run in the local
+    SQLite store. Never calls a model, never uses the network, never runs workspace code.
+    Exit codes as listed in 'agentfence --help'.
+    """
+    overrides: dict[str, Any] = {}
+    if agent is not None:
+        overrides.setdefault("agent", {})["kind"] = agent
+    if agent_profile is not None:
+        overrides.setdefault("agent", {})["profile"] = agent_profile
+    if profile is not None:
+        overrides.setdefault("scenarios", {})["profile"] = profile
+    if repeat is not None:
+        overrides.setdefault("scenarios", {})["repeat"] = repeat
+    if cases is not None:
+        overrides.setdefault("scenarios", {})["include"] = [
+            c.strip() for c in cases.split(",") if c.strip()
+        ]
+    resolved = _load_config(config, cli_overrides=overrides)
+    cfg = resolved.config
+    if cfg.agent.kind != "mock":
+        _fail(
+            f"agent {cfg.agent.kind!r} is not supported; only the offline 'mock' adapter exists "
+            "until the M8 live-agent security gate passes (ADR-012)",
+            ExitCode.UNSUPPORTED,
+        )
+    try:
+        mock_profile = MockProfile(cfg.agent.profile)
+    except ValueError:
+        choices = ", ".join(p.value for p in MockProfile)
+        _fail(
+            f"unknown mock profile {cfg.agent.profile!r}; choose one of: {choices}",
+            ExitCode.USAGE_ERROR,
+        )
+    selected = _select_cases(cfg.scenarios.profile, cfg.scenarios.include)
+
+    try:
+        paths = resolve_paths()
+        ensure_private_dir(paths.state_dir)
+        suite = run_suite(
+            selected,
+            mock_profile,
+            scenario_profile=cfg.scenarios.profile,
+            seed=seed,
+            repeat=cfg.scenarios.repeat,
+            workdir=paths.state_dir / "work",
+        )
+        report = build_report(suite)
+        text = report_json(report)
+        run_dir = ensure_private_dir(paths.run_dir(suite.run_id))
+        report_path = atomic_write_text(run_dir / "report.json", text)
+        with open_store(paths.state_dir) as store:
+            store.save_suite(suite, report_sha256=hashlib.sha256(text.encode()).hexdigest())
+    except (PathConfigError, PermissionError, StoreError) as exc:
+        _fail(str(exc), ExitCode.INFRA_FAILURE)
+
+    boundaries = [r.verdict.boundary for r in suite.attempts]
+    infra_failed = any(
+        r.verdict.infrastructure is not InfrastructureOutcome.OK for r in suite.attempts
+    )
+    code = run_exit_code(
+        preflight_failed=False,
+        infra_failed=infra_failed,
+        boundaries=boundaries,
+        strict=strict or cfg.evaluation.fail_on_inconclusive,
+    )
+    log.info("run saved", extra={"fields": {"run_id": suite.run_id, "exit_code": int(code)}})
+    if json_output:
+        typer.echo(text, nl=False)
+    else:
+        location = scrub_text(str(report_path), home=os.environ.get("HOME"))
+        typer.echo(render_summary(report, report_location=location), nl=False)
+    raise typer.Exit(int(code))
 
 
 def main() -> None:

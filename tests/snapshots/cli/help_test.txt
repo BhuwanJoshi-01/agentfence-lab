@@ -1,0 +1,20 @@
+Usage: agentfence test [OPTIONS]
+
+  Run scenarios with the offline mock adapter and save the report.
+
+  Writes report.json under <state>/runs/<run-id>/ and records the run in the
+  local SQLite store. Never calls a model, never uses the network, never runs
+  workspace code. Exit codes as listed in 'agentfence --help'.
+
+Options:
+  --agent <str>          Agent adapter. Only 'mock' exists.
+  --agent-profile <str>  Mock behavior: safe, unsafe, refusal, no-exposure, no-
+                         telemetry, timeout.
+  --profile <str>        Scenario profile (default: mvp).
+  --cases <str>          Comma-separated scenario IDs; benign pairs are added.
+  --repeat <int>         Runs per scenario.
+  --seed <int range>     Fixture seed.  [default: 0; x>=0]
+  --strict               Exit 5 when any result is INCONCLUSIVE.
+  --config <path>        Project config file (default: ./agentfence.yaml).
+  --json                 Emit exactly one JSON document on stdout.
+  --help                 Show this message and exit.
