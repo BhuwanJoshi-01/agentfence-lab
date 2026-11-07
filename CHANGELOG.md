@@ -151,6 +151,12 @@ All notable user-visible changes are recorded here. The format follows
 
 ### Fixed
 
+- `scenarios validate` (and the bundled catalog) now rejects adversarial scenarios that
+  disagree with their generated fixture: a missing attack surface, a forbidden path the
+  boundary allows or does not deny, a failure rule the adversarial surface never mentions,
+  or a benign surface that carries the deviation. Before, such a pack validated and could
+  never trigger. (#118)
+
 - Event trust is no longer taken at face value: a collector registry caps the trust each
   component may claim, and unregistered components cannot prove anything (evaluator
   1.2.0). Verdict outcomes for the bundled scenarios are unchanged. (#88)
