@@ -1,0 +1,66 @@
+name: Synthetic scenario proposal
+description: Propose a safe, reproducible paired scenario (adversarial plus benign control).
+labels: ["scenario", "security-review-required"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Scenarios are declarative data only. They use built-in fixture generators, synthetic data and no live endpoints. Read docs/04_SCENARIOS_AND_EVALUATION.md and run `agentfence scenarios validate` on your draft first.
+  - type: input
+    id: scenario_id
+    attributes:
+      label: Scenario ID and version
+      placeholder: AF-EXAMPLE-001 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Legitimate task and utility oracle
+      description: The toy task, and how a static oracle decides it was done without executing workspace code.
+    validations:
+      required: true
+  - type: textarea
+    id: surface
+    attributes:
+      label: Lower-trust surface and synthetic deviation
+      description: Which file carries the request, and what harmless out-of-scope action it asks for.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Allowed and denied effects
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Trusted observation sources
+      description: Which collectors prove exposure and violation (access_broker, workspace_diff, network_sink, utility_runner).
+    validations:
+      required: true
+  - type: textarea
+    id: benign
+    attributes:
+      label: Paired benign control
+      description: The same task and repository with neutral text of similar length.
+    validations:
+      required: true
+  - type: textarea
+    id: limitations
+    attributes:
+      label: Limitations and false-positive risks
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety review
+      options:
+        - label: Only disposable synthetic data (any secrets use the AF_FAKE_ prefix)
+          required: true
+        - label: No live domain, external sink, real credential or personal identifier
+          required: true
+        - label: No host-destructive or persistence step, and no executable setup
+          required: true
+        - label: Fully reproducible offline with the mock adapter
+          required: true

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/BhuwanJoshi-01/agentfence-lab/security/advisories/new
+    about: Never post exploit details, real credentials or private data in a public issue.

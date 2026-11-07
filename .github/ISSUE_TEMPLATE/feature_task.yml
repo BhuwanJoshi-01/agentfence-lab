@@ -1,0 +1,35 @@
+name: Feature or implementation task
+description: A scoped engineering task with measurable acceptance criteria.
+labels: ["implementation"]
+body:
+  - type: input
+    id: task
+    attributes:
+      label: Task ID and milestone
+      placeholder: AF-0000 / M0
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose and user story
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Functional requirements and non-goals
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Trust boundaries and safety impact
+      description: Any new privilege, host mount, credential or network path? If so, the issue needs security review.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Positive and negative behavior, docs, reproduction.
+    validations:
+      required: true
