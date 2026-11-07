@@ -134,6 +134,7 @@ def judge(observed: Mapping[str, Any], policy: IsolationPolicy) -> tuple[Attesta
     host_uid = _host_id(observed.get("uid_map"), policy.uid)
     root_host = _host_id(observed.get("uid_map"), 0)
     tmp_bytes = observed.get("tmp_bytes")
+    hosts = observed.get("hosts_entries")
     rows: list[tuple[str, str, object, bool | None]] = [
         (
             "process.non_root",
@@ -237,6 +238,15 @@ def judge(observed: Mapping[str, Any], policy: IsolationPolicy) -> tuple[Attesta
             None if "dns" not in observed else observed.get("dns") != "RESOLVED",
         ),
         (
+            "hosts.private",
+            "/etc/hosts holds only loopback entries; host aliases do not resolve",
+            f"{'; '.join(map(str, hosts or []))} | host alias {observed.get('resolve_host_alias')}",
+            None
+            if not isinstance(hosts, list) or "resolve_host_alias" not in observed
+            else all(_loopback_entry(str(h)) for h in hosts)
+            and observed.get("resolve_host_alias") != "RESOLVED",
+        ),
+        (
             "mounts.allowlisted",
             "only engine-managed mounts, /tmp and /workspace",
             ", ".join(_unexpected_mounts(mounts)) or "all expected",
@@ -260,6 +270,12 @@ def judge(observed: Mapping[str, Any], policy: IsolationPolicy) -> tuple[Attesta
         )
         for cid, expected, seen, ok in rows
     )
+
+
+def _loopback_entry(line: str) -> bool:
+    address, *names = line.split()
+    loopback = address in {"127.0.0.1", "::1"}
+    return loopback and all(n.startswith(("localhost", "ip6-")) for n in names)
 
 
 def _unexpected_mounts(mounts: object) -> list[str]:

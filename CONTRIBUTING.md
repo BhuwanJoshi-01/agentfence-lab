@@ -29,6 +29,13 @@ git diff tests/snapshots/
 
 These are the same checks CI runs on every pull request (`.github/workflows/ci.yml`). Tests marked `isolation` need a verified rootless runtime on a trusted runner; they are skipped on hosted CI and on hosts without that capability, and a skip is never counted as a pass.
 
+To run the isolation tests yourself you need rootless Podman, a host where `agentfence doctor` passes every required check, and the pinned image (`doctor` prints the one-time `podman pull` command). They start real containers and take about a minute:
+
+```bash
+agentfence doctor --self-test     # 16 checks from inside one container
+pytest -m isolation               # tests/isolation: self-test plus 13 negative tests
+```
+
 ### Branches, commits and pull requests
 
 - One roadmap task per pull request, on a branch named `feat/AF-XXXX-short-description` (or `fix/`, `docs/`, `ci/`).

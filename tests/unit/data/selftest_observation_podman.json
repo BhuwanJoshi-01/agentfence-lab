@@ -11,6 +11,10 @@
   "refused": "EAGAIN"
  },
  "gid": 65532,
+ "hosts_entries": [
+  "127.0.0.1 localhost localhost.localdomain",
+  "::1 localhost localhost.localdomain"
+ ],
  "interfaces": [
   "lo"
  ],
@@ -30,7 +34,6 @@
   "/dev/zero",
   "/etc/group",
   "/etc/hostname",
-  "/etc/hosts",
   "/etc/passwd",
   "/proc",
   "/proc/acpi",
@@ -72,6 +75,7 @@
  ],
  "no_new_privs": "1",
  "pids_max": "128",
+ "resolve_host_alias": "gaierror",
  "rootfs_write": "EROFS",
  "seccomp": "2",
  "sockets": [],

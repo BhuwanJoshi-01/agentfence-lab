@@ -53,7 +53,7 @@ def statuses(observed: dict[str, Any]) -> dict[str, CheckStatus]:
 
 def test_the_real_observation_passes_every_check() -> None:
     result = statuses(OBSERVED)
-    assert len(result) == 15
+    assert len(result) == 16
     assert set(result.values()) == {CheckStatus.PASS}
 
 
@@ -92,6 +92,13 @@ def mutated(path: str, value: object) -> dict[str, Any]:
         ("connect_metadata", "TimeoutError", "network.none"),
         ("connect_host_gateway", "ECONNREFUSED", "network.none"),
         ("dns", "RESOLVED", "dns.blocked"),
+        ("resolve_host_alias", "RESOLVED", "hosts.private"),
+        ("hosts_entries", [*OBSERVED["hosts_entries"], "127.0.1.1 build-host"], "hosts.private"),
+        (
+            "hosts_entries",
+            [*OBSERVED["hosts_entries"], "192.168.1.74 host.containers.internal"],
+            "hosts.private",
+        ),
         ("mount_targets", [*OBSERVED["mount_targets"], "/home/user"], "mounts.allowlisted"),
         ("mount_targets", [*OBSERVED["mount_targets"], "/run/podman"], "mounts.allowlisted"),
         ("sockets", ["/run/docker.sock"], "sockets.absent"),
@@ -112,6 +119,7 @@ def test_each_weakening_fails_its_check(path: str, value: object, check: str) ->
         ("memory_max", "memory.limit"),
         ("fork", "pids.limit"),
         ("interfaces", "network.none"),
+        ("hosts_entries", "hosts.private"),
         ("mount_targets", "mounts.allowlisted"),
         ("sockets", "sockets.absent"),
     ],
