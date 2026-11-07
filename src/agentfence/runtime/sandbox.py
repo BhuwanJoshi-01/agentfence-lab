@@ -68,7 +68,7 @@ class SandboxError(RuntimeError):
 def remove_run_resources(executable: str, run_id: str, run: Runner = run_bounded) -> int:
     """Force-remove every container and volume labelled with ``run_id``. Returns failures."""
     mine = [r for r in list_labelled("podman", executable, run) if r.run_id == run_id]
-    return len(remove_stale(executable, mine, run).failed)
+    return len(remove_stale(executable, mine, run, engine="podman").failed)
 
 
 def run_container(  # noqa: PLR0913 - explicit, keyword-only knobs

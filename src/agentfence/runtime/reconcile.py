@@ -14,6 +14,12 @@ Safety rules:
   removed, so an engine that returns unrelated objects cannot make us delete them.
 * Resources of the active run are never stale.
 * Containers are removed before volumes (a volume in use cannot be removed).
+* With a clock, any resource of a run created within the grace period keeps the whole
+  run: a concurrent ``doctor --self-test`` or run is never torn down. Creation times come
+  from the engine (Podman: ``Created`` seconds, volume ``CreatedAt``; Docker: container
+  ``CreatedAt``); a resource without one counts as old.
+* Podman removes with ``--time 0``: a container whose PID 1 ignores ``SIGTERM`` would
+  otherwise hold removal for ten seconds.
 * Every engine call goes through the bounded process supervisor with a minimal
   environment (:func:`agentfence.runtime.engine_probe.run_bounded`).
 
@@ -27,7 +33,8 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Final, Literal
 
 from agentfence.core.sandbox_policy import RUN_LABEL, VOLUME_PREFIX
@@ -56,10 +63,14 @@ _LIST: Final[Mapping[Engine, Mapping[Kind, tuple[str, ...]]]] = {
         "volume": ("volume", "ls", "--filter", f"label={RUN_LABEL}", "--format", "{{json .}}"),
     },
 }
-_REMOVE: Final[Mapping[Kind, tuple[str, ...]]] = {
-    "container": ("rm", "--force"),
-    "volume": ("volume", "rm", "--force"),
+_REMOVE: Final[Mapping[Engine, Mapping[Kind, tuple[str, ...]]]] = {
+    "podman": {
+        "container": ("rm", "--force", "--time", "0"),
+        "volume": ("volume", "rm", "--force"),
+    },
+    "docker": {"container": ("rm", "--force"), "volume": ("volume", "rm", "--force")},
 }
+STALE_GRACE_SECONDS: Final = 600.0
 
 
 class ReconcileError(RuntimeError):
@@ -72,6 +83,8 @@ class LabelledResource:
     ref: str
     """Container ID or volume name."""
     run_id: str
+    created: float | None = field(default=None, compare=False)
+    """Unix time the engine reports for the resource, if any."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +122,26 @@ def _ref(kind: Kind, record: Mapping[str, Any]) -> str | None:
     return name if isinstance(name, str) and _VOLUME_NAME.match(name) else None
 
 
+def _created(record: Mapping[str, Any]) -> float | None:
+    """Podman ``Created`` (Unix seconds) or an RFC 3339 / Docker ``CreatedAt`` string."""
+    raw = record.get("Created")
+    if isinstance(raw, int | float) and not isinstance(raw, bool):
+        return float(raw)
+    text = record.get("CreatedAt")
+    if not isinstance(text, str):
+        return None
+    parts = text.split()
+    candidates = [text, " ".join(parts[:3])] if len(parts) >= 3 else [text]
+    for candidate in candidates:
+        trimmed = re.sub(r"(\.\d{6})\d+", r"\1", candidate)
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%d %H:%M:%S %z"):
+            try:
+                return datetime.strptime(trimmed, fmt).timestamp()
+            except ValueError:
+                continue
+    return None
+
+
 def list_labelled(
     engine: Engine, executable: str, run: Runner = run_bounded
 ) -> tuple[LabelledResource, ...]:
@@ -126,20 +159,32 @@ def list_labelled(
             run_id = _labels(record.get("Labels")).get(RUN_LABEL)
             ref = _ref(kind, record)
             if run_id and _RUN_ID.match(run_id) and ref:
-                found.append(LabelledResource(kind, ref, run_id))
+                found.append(LabelledResource(kind, ref, run_id, _created(record)))
     return tuple(sorted(found))
 
 
 def plan_stale(
-    resources: Sequence[LabelledResource], *, active_run: str | None = None
+    resources: Sequence[LabelledResource],
+    *,
+    active_run: str | None = None,
+    now: float | None = None,
+    grace: float = STALE_GRACE_SECONDS,
 ) -> tuple[LabelledResource, ...]:
-    """Everything not belonging to ``active_run``; containers first, then volumes."""
-    stale = [r for r in resources if r.run_id != active_run]
+    """Everything not belonging to ``active_run`` or to a run with a recent resource;
+    containers first, then volumes. Without ``now`` no run counts as recent."""
+    busy = {active_run}
+    if now is not None:
+        busy |= {r.run_id for r in resources if r.created is not None and r.created > now - grace}
+    stale = [r for r in resources if r.run_id not in busy]
     return tuple(sorted(stale, key=lambda r: (r.kind != "container", r.ref)))
 
 
 def remove_stale(
-    executable: str, stale: Sequence[LabelledResource], run: Runner = run_bounded
+    executable: str,
+    stale: Sequence[LabelledResource],
+    run: Runner = run_bounded,
+    *,
+    engine: Engine = "podman",
 ) -> Removal:
     """Force-remove each stale resource. Failures are reported, never raised."""
     removed: list[LabelledResource] = []
@@ -149,7 +194,7 @@ def remove_stale(
             resource.ref
         )
         result = (
-            run([executable, *_REMOVE[resource.kind], resource.ref])
+            run([executable, *_REMOVE[engine][resource.kind], resource.ref])
             if valid
             else QueryResult(returncode=-1, stdout=b"")
         )
