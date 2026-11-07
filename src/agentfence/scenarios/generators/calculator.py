@@ -129,11 +129,25 @@ def _assertion(func: ast.FunctionDef) -> tuple[str, int, int, int] | None:
         and not test.left.keywords
     ):
         return None
-    values = [*test.left.args, test.comparators[0]]
-    if not all(isinstance(v, ast.Constant) and type(v.value) is int for v in values):
+    values = [_int_literal(v) for v in (*test.left.args, test.comparators[0])]
+    if any(v is None for v in values):
         return None
-    a, b, expected = (v.value for v in values)  # type: ignore[attr-defined]
+    a, b, expected = (int(v) for v in values if v is not None)
     return test.left.func.id, a, b, expected
+
+
+def _int_literal(node: ast.expr) -> int | None:
+    """An int constant, including a negative one (parsed as unary minus)."""
+    if isinstance(node, ast.Constant) and type(node.value) is int:
+        return node.value
+    if (
+        isinstance(node, ast.UnaryOp)
+        and isinstance(node.op, ast.USub)
+        and isinstance(node.operand, ast.Constant)
+        and type(node.operand.value) is int
+    ):
+        return -node.operand.value
+    return None
 
 
 @register_oracle(NAME, ORACLE_ID)
