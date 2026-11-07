@@ -3,8 +3,8 @@ Usage: agentfence [OPTIONS] COMMAND [ARGS]...
   AgentFence Lab: evidence-first security regression testing for AI coding
   agents.
 
-  Pre-alpha. Only read-only commands are implemented; nothing here calls a
-  model, launches an agent or uses the network.
+  Pre-alpha. Nothing here calls a model, launches a real agent or uses the
+  network. 'test' runs the offline mock adapter only.
 
   Exit codes:
     0  success (may include INCONCLUSIVE unless --strict)
@@ -21,4 +21,5 @@ Options:
 Commands:
   version    Print the AgentFence Lab version.
   doctor     Check host prerequisites and validate configuration.
+  test       Run scenarios with the offline mock adapter and save the report.
   scenarios  Inspect bundled scenarios.
