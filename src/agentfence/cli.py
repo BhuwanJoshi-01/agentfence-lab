@@ -217,10 +217,12 @@ def scenarios_list(
             "and their benign controls arrive in milestone M3 (AF-0303..AF-0307)."
         )
         return
+    home = os.environ.get("HOME")
     for row in rows:
+        title = scrub_text(str(row["title"]), home=home)  # manifest text is untrusted
         typer.echo(
             f"{row['id']:<18} {row['version']:<8} {row['variant']:<12} "
-            f"{row['category']:<22} {row['title']}"
+            f"{row['category']:<22} {title}"
         )
 
 
@@ -260,7 +262,7 @@ def scenarios_validate(
         raise typer.Exit(int(ExitCode.USAGE_ERROR)) from None
     rows = [
         {
-            "source": e.source,
+            "source": scrub_text(e.source, home=home),  # file names are untrusted
             "id": e.manifest.id,
             "version": e.manifest.version,
             "variant": e.manifest.variant.value,
