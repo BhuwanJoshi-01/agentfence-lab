@@ -33,7 +33,11 @@ from agentfence.core.evaluator import Verdict, evaluate
 from agentfence.core.events import EventRecorder, ObservedEvent
 from agentfence.core.fixtures import Fixture, generate
 from agentfence.core.lifecycle import RunLifecycle, RunStatus, Transition
-from agentfence.core.scenario_manifest import ScenarioCategory, ScenarioManifest
+from agentfence.core.scenario_manifest import (
+    FailureRuleKind,
+    ScenarioCategory,
+    ScenarioManifest,
+)
 from agentfence.core.vocabulary import InfrastructureOutcome
 from agentfence.runtime.collectors import (
     BrokerError,
@@ -80,6 +84,42 @@ def stepping_clock(start: datetime, step: timedelta) -> Callable[[], datetime]:
     return lambda: start + step * next(ticks)
 
 
+def _watch_markers(scenario: ScenarioManifest, fixture: Fixture) -> dict[str, bytes]:
+    """Output paths whose content the snapshot must check for the seeded marker token."""
+    token = fixture.markers.get("output_marker_token")
+    if not token:
+        return {}
+    return {
+        rule.path: token.encode()
+        for rule in scenario.verdict.failure_if
+        if rule.kind is FailureRuleKind.OUTPUT_MARKER_PRESENT and rule.path
+    }
+
+
+def _make_plan(
+    scenario: ScenarioManifest,
+    fixture: Fixture,
+    profile: MockProfile,
+    broker: WorkspaceBroker,
+    notes: list[str],
+) -> mock.Plan | None:
+    """Ask the adapter for its plan. Refused reads become ``None``; an adapter crash
+    returns ``None`` so the attempt ends as infrastructure ERROR, never a CLI traceback."""
+
+    def plan_read(path: str) -> bytes | None:
+        try:
+            return broker.read(path)
+        except BrokerError as exc:
+            notes.append(f"planning read refused: {exc}")
+            return None
+
+    try:
+        return mock.plan(scenario, fixture, profile, plan_read)
+    except Exception as exc:  # noqa: BLE001 - an adapter fault is an infra outcome
+        notes.append(f"adapter failed while planning: {type(exc).__name__}")
+        return None
+
+
 def _execute(
     plan: mock.Plan, broker: WorkspaceBroker, network: MockNetwork, notes: list[str]
 ) -> None:
@@ -119,19 +159,23 @@ def _run_agent(  # noqa: PLR0913 - one attempt's moving parts, passed explicitly
     infra = InfrastructureOutcome.OK
     try:
         lifecycle.advance(RunStatus.RUNNING, f"mock profile {profile.value}")
-        plan = mock.plan(scenario, fixture, profile, broker.read)
+        plan = _make_plan(scenario, fixture, profile, broker, notes)
+        if plan is None:
+            infra = InfrastructureOutcome.ERROR
+            lifecycle.advance(RunStatus.INFRA_ERROR, "adapter failed while planning")
+            plan = mock.Plan(())
         _execute(plan, broker, network, notes)
-        if plan.stalls:
+        if infra is InfrastructureOutcome.OK and plan.stalls:
             infra = InfrastructureOutcome.TIMEOUT
             lifecycle.advance(RunStatus.TIMED_OUT, "mock-timeout: agent did not finish")
-        else:
+        elif infra is InfrastructureOutcome.OK:
             lifecycle.advance(RunStatus.COLLECTING, "agent finished")
         if plan.drops_collector:
             notes.append("simulated access-broker collector failure")
         else:
             broker.finish()
         network.finish()
-        snapshot.finish(protected=protected)
+        snapshot.finish(protected=protected, watch_markers=_watch_markers(scenario, fixture))
     finally:
         broker.close()
     return infra

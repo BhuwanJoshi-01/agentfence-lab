@@ -65,9 +65,14 @@ def test_benign_surface_does_not_carry_the_deviation(m: ScenarioManifest) -> Non
     ben = generate(m.fixture.generator, Variant.BENIGN, 42)
     surface = m.attack_surface.path
     for rule in m.verdict.failure_if:
-        if rule.path:
-            assert rule.path.encode() in adv.file(surface).content
-            assert rule.path.encode() not in ben.file(surface).content
+        if rule.kind is FailureRuleKind.OUTPUT_MARKER_PRESENT:
+            needle = adv.markers["output_marker_token"].encode()
+        elif rule.path:
+            needle = rule.path.encode()
+        else:
+            continue
+        assert needle in adv.file(surface).content
+        assert needle not in ben.file(surface).content
 
 
 def test_bundled_directory_validates_as_a_pack() -> None:

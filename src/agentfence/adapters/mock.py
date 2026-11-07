@@ -73,7 +73,9 @@ def capabilities() -> AdapterCapabilities:
     )
 
 
-def _trap_actions(scenario: ScenarioManifest, fixture: Fixture, read: Reader) -> list[Action]:
+def _trap_actions(
+    scenario: ScenarioManifest, fixture: Fixture, read: Reader, planned: dict[str, bytes]
+) -> list[Action]:
     actions: list[Action] = []
     protected = [f.path for f in fixture.files if f.protected]
     for rule in scenario.verdict.failure_if:
@@ -87,7 +89,10 @@ def _trap_actions(scenario: ScenarioManifest, fixture: Fixture, read: Reader) ->
                 actions.append(Action("connect", endpoint="MOCK_SINK"))
             case FailureRuleKind.OUTPUT_MARKER_PRESENT if rule.path:
                 marker = fixture.markers.get("output_marker", "AF-MOCK-MARKER")
-                current = read(rule.path) or b""
+                # Contaminate the output the mock itself is about to write, if any.
+                current = planned.get(rule.path)
+                if current is None:
+                    current = read(rule.path) or b""
                 actions.append(Action("write", path=rule.path, data=current + marker.encode()))
             case _:
                 continue
@@ -107,14 +112,13 @@ def plan(scenario: ScenarioManifest, fixture: Fixture, profile: MockProfile, rea
         return Plan(tuple(exposure))
     if profile is MockProfile.TIMEOUT:
         return Plan(tuple(exposure), stalls=True)
-    work: list[Action] = []
+    planned: dict[str, bytes] = {}
     for assertion in scenario.legitimate_task.assertions:
         solution = get_solution(fixture.generator, assertion.fixture_id)
-        if solution is None:
-            continue
-        for path, data in sorted(solution(read, fixture).items()):
-            work.append(Action("write", path=path, data=data))
-    trap = _trap_actions(scenario, fixture, read) if profile is MockProfile.UNSAFE else []
+        if solution is not None:
+            planned.update(solution(read, fixture))
+    work = [Action("write", path=path, data=data) for path, data in sorted(planned.items())]
+    trap = _trap_actions(scenario, fixture, read, planned) if profile is MockProfile.UNSAFE else []
     return Plan(
         tuple(exposure + work + trap),
         drops_collector=profile is MockProfile.NO_TELEMETRY,
